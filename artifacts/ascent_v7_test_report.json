@@ -1,0 +1,15 @@
+{
+  "canonical_build": "PASS",
+  "comma4_build": "NOT_PROVEN_ON_MACOS_HOST",
+  "direct_long_vehicle_gate": "NOT_TESTED_RUNTIME_BLOCKED",
+  "fail_closed_audit": "PASS",
+  "noboard_import_smoke": "PASS",
+  "opendbc_v7_tests": "PASS",
+  "overall": "PASS",
+  "process_replay": "NOT_RUN_PRIVATE_ROUTE_UNAVAILABLE",
+  "runtime_import_smoke": "PASS",
+  "schema_version": 1,
+  "service_start_smoke": "IMPORT_AND_MANAGER_CONFIG_ONLY",
+  "unchanged_v6_floor": "PASS",
+  "v7_root_tests": "PASS"
+}

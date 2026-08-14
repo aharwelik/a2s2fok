@@ -1,0 +1,19 @@
+{
+  "combined_v6_runner": "passed",
+  "canonical_build": "passed",
+  "comma4_mici_import": "passed",
+  "deterministic_root_steps": [
+    "static_isolation",
+    "stop_obstacle_tests",
+    "overtake_advisor_tests",
+    "map_regression",
+    "button_tracker",
+    "speed_limit_button",
+    "lane_change_state",
+    "ui_import",
+    "comma4_mici_import",
+    "canonical_build"
+  ],
+  "route_replay": "NOT_RUN",
+  "route_replay_reason": "private routes were not available in this local workspace"
+}

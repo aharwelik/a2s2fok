@@ -1,0 +1,15 @@
+{
+  "install_url": "https://install.sunnypilot.ai/fork/aharwelik/ascent-2023-combined-test-v6",
+  "root_repo": "https://github.com/aharwelik/sunnypilot",
+  "root_branch": "ascent-2023-combined-test-v6",
+  "opendbc_repo": "https://github.com/aharwelik/sunnyopendbc",
+  "opendbc_branch": "ascent-2023-combined-opendbc-v6",
+  "opendbc_sha": "4e7bad36b655da342a773d4ad6ff799838ab4a55",
+  "longitudinal_owner": "STOCK_EYESIGHT",
+  "live_stop_braking": false,
+  "model_stop_shadow": true,
+  "driver_requested_lane_change": true,
+  "autonomous_passing_live": false,
+  "overtake_advisor_shadow": true
+}
+
