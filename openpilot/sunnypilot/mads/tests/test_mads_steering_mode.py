@@ -22,12 +22,14 @@ EventNameSP = custom.OnroadEventSP.EventName
 SafetyModel = structs.CarParams.SafetyModel
 
 
-def make_car_state(brake_pressed=False, regen_braking=False, standstill=False, v_ego=0.0):
+def make_car_state(brake_pressed=False, regen_braking=False, standstill=False, v_ego=0.0,
+                   gear_shifter=structs.CarState.GearShifter.drive):
   cs = structs.CarState()
   cs.brakePressed = brake_pressed
   cs.regenBraking = regen_braking
   cs.standstill = standstill
   cs.vEgo = v_ego
+  cs.gearShifter = gear_shifter
   cs.cruiseState.available = True
   return cs
 
@@ -152,6 +154,14 @@ class TestPauseMode(OpenpilotTestCase):
 # disengage
 
 class TestDisengageMode(OpenpilotTestCase):
+  def test_park_always_requests_full_lkas_disable(self, mocker):
+    mads, sd = make_mads(mocker, MadsSteeringModeOnBrake.PAUSE)
+    mads.enabled = True
+    sd.events.add(EventName.wrongGear)
+
+    mads.update_events(make_car_state(standstill=True, gear_shifter=structs.CarState.GearShifter.park))
+    assert sd.events_sp.has(EventNameSP.lkasDisable)
+
   def test_brake_while_enabled_disables(self, mocker):
     mads, sd = make_mads(mocker, MadsSteeringModeOnBrake.DISENGAGE)
     mads.state_machine.state = State.enabled

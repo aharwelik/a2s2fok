@@ -160,6 +160,8 @@ procs = [
   PythonProcess("updated", "openpilot.system.updated.updated", only_offroad, enabled=not PC),
   PythonProcess("uploader", "openpilot.system.loggerd.uploader", uploader_ready),
   PythonProcess("statsd", "openpilot.sunnypilot.system.statsd", always_run),
+  PythonProcess("ascentmaintenanced", "openpilot.sunnypilot.system.ascent_maintenance.daemon", always_run, enabled=COMMA_HARDWARE),
+  PythonProcess("ascentv8shadowd", "openpilot.sunnypilot.selfdrive.ascent_v8.shadowd", only_onroad, enabled=COMMA_HARDWARE),
 
   # debug procs
   NativeProcess("bridge", "openpilot/cereal/messaging", ["./bridge"], notcar),

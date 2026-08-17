@@ -12,6 +12,7 @@ from openpilot.selfdrive.ui.mici.widgets.dialog import BigConfirmationDialog, Bi
 from openpilot.selfdrive.ui.sunnypilot.mici.layouts.sunnylink import SunnylinkLayoutMici
 from openpilot.selfdrive.ui.sunnypilot.mici.layouts.models import ModelsLayoutMici
 from openpilot.selfdrive.ui.ui_state import ui_state
+from openpilot.sunnypilot.selfdrive.ascent_v8.status import DEVELOPMENT_LABEL, status_summary
 from openpilot.system.ui.lib.application import gui_app
 from openpilot.system.ui.lib.multilang import tr
 
@@ -40,6 +41,10 @@ class SettingsLayoutSP(OP.SettingsLayout):
     models_btn = SettingsBigButton(tr("models"), "", gui_app.texture("../../sunnypilot/selfdrive/assets/offroad/icon_models.png", ICON_SIZE, ICON_SIZE))
     models_btn.set_click_callback(lambda: gui_app.push_widget(models_panel))
 
+    ascent_v8_btn = SettingsBigButton(tr("ascent v8"), DEVELOPMENT_LABEL,
+                                      gui_app.texture("icons_mici/settings/device/lkas.png", ICON_SIZE, ICON_SIZE))
+    ascent_v8_btn.set_click_callback(lambda: gui_app.push_widget(BigDialog(tr("Ascent V8 Integration Status"), status_summary())))
+
     # onroad: enable button sits at the front (left of toggles)
     self._enable_offroad_btn_onroad = BigCircleButton(self.icon_offroad_enable, red=True)
     self._enable_offroad_btn_onroad.set_click_callback(lambda: self._handle_always_offroad(True))
@@ -58,6 +63,7 @@ class SettingsLayoutSP(OP.SettingsLayout):
 
     items.insert(1, sunnylink_btn)
     items.insert(2, models_btn)
+    items.insert(3, ascent_v8_btn)
 
     # front slots (only one ever visible at a time): exit-always-offroad, then enable-onroad
     items.insert(0, self._enable_offroad_btn_onroad)

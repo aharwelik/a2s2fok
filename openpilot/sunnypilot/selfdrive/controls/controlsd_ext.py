@@ -10,6 +10,7 @@ import openpilot.cereal.messaging as messaging
 from openpilot.cereal import log, custom
 
 from opendbc.car import structs
+from opendbc.safety import ALTERNATIVE_EXPERIENCE
 from openpilot.common.params import Params
 from openpilot.common.swaglog import cloudlog
 from openpilot.sunnypilot import PARAMS_UPDATE_PERIOD
@@ -31,7 +32,7 @@ class ControlsExt(ModelStateBase):
     self.CP_SP = messaging.log_from_bytes(params.get("CarParamsSP", block=True), custom.CarParamsSP)
     cloudlog.info("controlsd_ext got CarParamsSP")
 
-    self.sm_services_ext = ['radarState', 'selfdriveStateSP']
+    self.sm_services_ext = ['radarState', 'selfdriveStateSP', 'pandaStates']
     self.pm_services_ext = ['carControlSP']
 
   def initialize_lateral_control(self, lac, CI, dt):
@@ -62,7 +63,23 @@ class ControlsExt(ModelStateBase):
 
     ss_sp = sm['selfdriveStateSP']
     if ss_sp.mads.available:
-      return bool(ss_sp.mads.active)
+      if not ss_sp.mads.active:
+        return False
+
+      # Stock ACC+SET remains authorized by Subaru's normal safety path.
+      if sm['carState'].cruiseState.enabled:
+        return True
+
+      # Independent MADS must match Panda's runtime authorization. Missing
+      # state or a stale configuration fails closed.
+      if len(sm['pandaStates']) == 0:
+        return False
+      alternative_experience = int(sm['pandaStates'][0].alternativeExperience)
+      if alternative_experience & ALTERNATIVE_EXPERIENCE.ENABLE_MADS:
+        return True
+
+      cloudlog.warning("MADS active but Panda lacks ENABLE_MADS; holding lateral control off")
+      return False
 
     # MADS not available, use stock state to engage
     return bool(sm['selfdriveState'].active)

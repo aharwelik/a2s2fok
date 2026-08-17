@@ -29,6 +29,12 @@ LaneChangeState = log.LaneChangeState
 LaneChangeDirection = log.LaneChangeDirection
 
 ACTUATOR_FIELDS = tuple(car.CarControl.Actuators.schema.fields.keys())
+BOOT_CANCEL_GRACE_S = 10.0
+
+
+def cruise_cancel_allowed(engageable: bool, control_frame: int) -> bool:
+  """Bound startup suppression; never suppress a mid-drive cancel."""
+  return engageable or control_frame * DT_CTRL >= BOOT_CANCEL_GRACE_S
 
 
 class Controls(ControlsExt):
@@ -178,7 +184,8 @@ class Controls(ControlsExt):
       CC.angularVelocity = self.calibrated_pose.angular_velocity.xyz.tolist()
 
     CC.cruiseControl.override = CC.enabled and not CC.longActive and (self.CP.openpilotLongitudinalControl or not self.CP_SP.pcmCruiseSpeed)
-    CC.cruiseControl.cancel = CS.cruiseState.enabled and (not CC.enabled or not self.CP.pcmCruise)
+    CC.cruiseControl.cancel = (CS.cruiseState.enabled and (not CC.enabled or not self.CP.pcmCruise)
+                               and cruise_cancel_allowed(self.sm['selfdriveState'].engageable, self.sm.frame))
     CC.cruiseControl.resume = CC.enabled and CS.cruiseState.standstill and not self.sm['longitudinalPlan'].shouldStop
 
     hudControl = CC.hudControl

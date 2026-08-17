@@ -1,0 +1,15 @@
+{
+  "package": "ASCENT_V8_0_BEST_COMBINED",
+  "created": "2026-08-17",
+  "vehicle": "2023 Subaru Ascent",
+  "device": "comma 4",
+  "root_branch": "ascent-2023-v8-alpha",
+  "opendbc_branch": "ascent-2023-v8-alpha-opendbc",
+  "modern_root_base": "0b1ed0d047aca5bed45f20323823c5d5e9cb6bc1",
+  "modern_opendbc_base": "abab7a16903a0da7be42128af124f27c977e2617",
+  "v7_root_donor": "549c460212c9bc948405c60de2802bc6265552e8",
+  "v7_opendbc_donor": "f96bf1ee6fc5891431938c4f175909b2e3198e4f",
+  "v6_root_rollback": "78965b9f8293fb290eda6abf17dd61f4b932c94e",
+  "v6_opendbc_rollback": "4e7bad36b655da342a773d4ad6ff799838ab4a55",
+  "installer": "https://install.sunnypilot.ai/fork/aharwelik/ascent-2023-v8-alpha"
+}

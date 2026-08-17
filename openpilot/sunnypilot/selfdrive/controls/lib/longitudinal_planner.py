@@ -21,6 +21,11 @@ DecState = custom.LongitudinalPlanSP.DynamicExperimentalControl.DynamicExperimen
 LongitudinalPlanSource = custom.LongitudinalPlanSP.LongitudinalPlanSource
 
 
+def clamp_speed_cap_accel(candidate_accel: float, actual_accel: float) -> float:
+  """A speed-cap source may demand more deceleration, never phantom acceleration."""
+  return min(candidate_accel, actual_accel)
+
+
 class LongitudinalPlannerSP:
   def __init__(self, CP: structs.CarParams, CP_SP: structs.CarParamsSP, mpc):
     self.events_sp = EventsSP()
@@ -71,6 +76,7 @@ class LongitudinalPlannerSP:
 
     self.source = min(targets, key=lambda k: targets[k][0])
     self.output_v_target, self.output_a_target = targets[self.source]
+    self.output_a_target = clamp_speed_cap_accel(self.output_a_target, a_ego)
     return self.output_v_target, self.output_a_target
 
   def update(self, sm: messaging.SubMaster) -> None:
