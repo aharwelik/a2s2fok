@@ -8,6 +8,7 @@ See the LICENSE.md file in the root directory for more details.
 
 import os
 os.environ['GMMU'] = '0'
+import threading
 from openpilot.common.hardware import COMMA_HARDWARE
 from openpilot.selfdrive.modeld.helpers import usbgpu_present, load_oob
 import time
@@ -47,8 +48,65 @@ from openpilot.sunnypilot.livedelay.helpers import get_lat_delay
 from openpilot.sunnypilot.modeld_v2.modeld_base import ModelStateBase
 from openpilot.sunnypilot.models.helpers import get_active_bundle
 from openpilot.sunnypilot.selfdrive.controls.lib.relc import RoadEdgeLaneChangeController
+from openpilot.sunnypilot.selfdrive.ascent_v8.model_runtime_policy import BigModelPolicy
 
 PROCESS_NAME = "openpilot.selfdrive.modeld.modeld_tinygrad"
+MODEL_RUNTIME_POLICY = BigModelPolicy()
+BIG_MODEL_TIMEOUT = MODEL_RUNTIME_POLICY.load_watchdog_ms / 1000.0
+
+
+class NonFiniteModelOutput(RuntimeError):
+  pass
+
+
+def validate_big_model_outputs(outputs: dict[str, np.ndarray]) -> None:
+  nonfinite = tuple(name for name, values in outputs.items()
+                    if isinstance(values, np.ndarray) and not np.all(np.isfinite(values)))
+  if nonfinite:
+    raise NonFiniteModelOutput(f"nonfinite big-model outputs: {','.join(nonfinite)}")
+
+
+def load_model_pair(cam_w: int, cam_h: int, usbgpu: bool, params: Params,
+                    model_factory=None, timeout_s: float = BIG_MODEL_TIMEOUT):
+  factory = model_factory or ModelState
+  params.put_bool("UsbGpuLoading", usbgpu)
+  params.remove("UsbGpuActive")
+  try:
+    if not usbgpu:
+      return factory(cam_w=cam_w, cam_h=cam_h, usbgpu=False), None
+
+    loaded: dict[str, ModelState] = {}
+
+    def load_big() -> None:
+      try:
+        loaded["model"] = factory(cam_w=cam_w, cam_h=cam_h, usbgpu=True)
+      except Exception:
+        cloudlog.exception("Chestnut big-model load failed; native model will be used")
+
+    loader = threading.Thread(target=load_big, daemon=True)
+    loader.start()
+    loader.join(timeout_s)
+    big_model = loaded.get("model")
+    if big_model is None:
+      cloudlog.error("Chestnut big-model load timed out or failed; loading native model")
+
+    # Keep a ready native model even when Chestnut starts successfully so runtime
+    # inference errors or USB loss can recover without restarting modeld.
+    small_model = factory(cam_w=cam_w, cam_h=cam_h, usbgpu=False)
+    model = big_model or small_model
+    params.put_bool("UsbGpuActive", bool(model.usbgpu))
+    return model, small_model
+  finally:
+    params.put_bool("UsbGpuLoading", False)
+
+
+def switch_to_native_model(model, small_model, params: Params):
+  if not model.usbgpu or small_model is None:
+    raise RuntimeError("native model fallback is unavailable")
+  small_model.lat_delay = model.lat_delay
+  small_model.PLANPLUS_CONTROL = model.PLANPLUS_CONTROL
+  params.put_bool("UsbGpuActive", False)
+  return small_model
 
 
 def _pkl_exists(path):
@@ -287,9 +345,8 @@ class ModelState(ModelStateBase):
       buf[0, :-1] = buf[0, 1:]
       buf[0, -1, :] = outputs['desired_curvature'][0, :] if not self.mlsim else 0
 
-    if self.usbgpu and not np.all(np.isfinite(outputs.get('plan', np.array([0.])))):
-      cloudlog.error("model output not finite, dropping frame")
-      return None
+    if self.usbgpu:
+      validate_big_model_outputs(outputs)
 
     return outputs
 
@@ -332,8 +389,6 @@ def main(demo=False):
     os.environ['HCQDEV_WAIT_TIMEOUT_MS'] = '3000'
 
   params = Params()
-  params.put_bool("UsbGpuLoading", USBGPU)
-  params.remove("UsbGpuActive")
 
   # visionipc clients
   while True:
@@ -361,23 +416,7 @@ def main(demo=False):
   cloudlog.warning("loading model")
   st = time.monotonic()
 
-  model = None
-  if USBGPU:
-    import threading
-    def load():
-      nonlocal model
-      model = ModelState(cam_w=vipc_client_main.width, cam_h=vipc_client_main.height, usbgpu=True)
-    t = threading.Thread(target=load, daemon=True)
-    t.start()
-    t.join(60)
-    if model is None:
-      params.put_bool("UsbGpuActive", False)
-      raise RuntimeError("eGPU model load failed or timed out (60s)")
-    params.put_bool("UsbGpuActive", True)
-  else:
-    model = ModelState(cam_w=vipc_client_main.width, cam_h=vipc_client_main.height, usbgpu=False)
-
-  params.put_bool("UsbGpuLoading", False)
+  model, small_model = load_model_pair(vipc_client_main.width, vipc_client_main.height, USBGPU, params)
   cloudlog.warning(f"models loaded in {time.monotonic() - st:.1f}s, modeld starting")
 
   # messaging
@@ -386,7 +425,7 @@ def main(demo=False):
   sm = SubMaster(["deviceState", "carState", "narrowRoadCameraState", "extrinsicsCalibration", "driverMonitoringState", "carControl", "lateralDelay"])
 
   publish_state = PublishState()
-  chestnut_state = ChestnutState(pm, USBGPU) if USBGPU else None
+  chestnut_state = ChestnutState(pm, model.usbgpu) if USBGPU else None
 
   # setup filter to track dropped frames
   frame_dropped_filter = FirstOrderFilter(0., 10., 1. / model.constants.MODEL_FREQ)
@@ -509,7 +548,17 @@ def main(demo=False):
       inputs['action_t'] = np.array([lat_action_t, long_action_t], dtype=np.float32)
 
     mt1 = time.perf_counter()
-    model_output = model.run(bufs, transforms, inputs, prepare_only)
+    try:
+      model_output = model.run(bufs, transforms, inputs, prepare_only)
+    except Exception:
+      if not model.usbgpu:
+        raise
+      cloudlog.exception("Chestnut inference failed; switching to the ready native model")
+      model = switch_to_native_model(model, small_model, params)
+      if chestnut_state is not None:
+        chestnut_state.big = False
+      run_count = 0
+      model_output = None
     mt2 = time.perf_counter()
     model_execution_time = mt2 - mt1
 

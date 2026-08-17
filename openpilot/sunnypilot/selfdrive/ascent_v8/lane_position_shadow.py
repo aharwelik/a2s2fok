@@ -29,10 +29,13 @@ class LanePositionShadow:
 
   def evaluate(self, inputs: LanePositionInput) -> LanePositionShadowResult:
     reasons: list[str] = []
-    confidence = min(inputs.left_lane_probability, inputs.right_lane_probability)
+    probabilities = (inputs.left_lane_probability, inputs.right_lane_probability)
+    confidence = min(probabilities) if all(isfinite(value) for value in probabilities) else 0.0
     values = (inputs.model_path_y_m, inputs.left_lane_y_m, inputs.right_lane_y_m)
     if any(value is None or not isfinite(value) for value in values):
       reasons.append("lane_geometry_missing")
+    if not all(isfinite(value) for value in probabilities):
+      reasons.append("lane_confidence_invalid")
     if inputs.source_age_s > self.max_source_age_s:
       reasons.append("source_stale")
     if not inputs.road_edge_clear:

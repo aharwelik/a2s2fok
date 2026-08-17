@@ -36,6 +36,7 @@ SAFE_SSH_COMMANDS = {"status", "logs", "update", "rollback"}
 SAFE_PARAM_NAMES = (
   "Version", "GitCommit", "GitBranch", "LastManagerExitReason", "CurrentRoute",
   "IsOffroad", "IsEngaged", "ControlsReady", "PandaHeartbeatLost", "LastUpdateException",
+  "AscentV8ShadowStatus", "UsbGpuActive", "UsbGpuLoading",
 )
 
 
@@ -70,7 +71,17 @@ def require_mutation_gate(params: Params) -> None:
 
 def status(params: Params, repo: Path = REPO) -> dict:
   install_ssh_params(params)
-  result = {"maintenance_transport": "restricted-key-only", "gate": gate(params), "repo": str(repo)}
+  shadow = params.get("AscentV8ShadowStatus")
+  usbgpu_loading = params.get_bool("UsbGpuLoading")
+  usbgpu_active = params.get("UsbGpuActive")
+  model_mode = "loading" if usbgpu_loading else "Chestnut" if usbgpu_active is True else "native" if usbgpu_active is False else "unknown"
+  result = {
+    "maintenance_transport": "restricted-key-only",
+    "gate": gate(params),
+    "repo": str(repo),
+    "model_mode": model_mode,
+    "shadow": shadow,
+  }
   if repo.is_dir() and (repo / ".git").exists():
     result.update({
       "branch": git("branch", "--show-current", cwd=repo),

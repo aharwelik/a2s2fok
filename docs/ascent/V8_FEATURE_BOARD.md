@@ -12,14 +12,16 @@ Driver Monitoring is intentionally omitted from this user-facing feature board. 
 
 ## V8 shadow-only intelligence
 
-- Unknown-space occupancy.
-- Adaptive curve envelope.
-- Lane-positioning research surface.
-- Whole-trajectory supervisor.
-- Final-command shadow guard.
+- Unknown-space occupancy using current lead, blind-spot, road-edge, and source-age evidence.
+- Adaptive curve envelope using predicted curvature and observed lateral-controller saturation.
+- Lane-positioning research surface using current lane geometry and confidence.
+- Whole-trajectory supervisor using model timestamps, acceleration, jerk, and derived curvature.
+- Final-command shadow guard using the model's current action candidate.
 - Stop-sign perception training path.
 - Local speed-limit evidence.
-- Native-model-first Chestnut/eGPU policy.
+- Chestnut/eGPU runtime with a preloaded native-model fallback for loading, USB, inference, or nonfinite-output failure.
+
+The comma settings screen and restricted SSH `status` command show the current model mode, source freshness, trajectory verdict, curve target, lane trim, and per-drive evaluation/error totals.
 
 ## Runtime connectors that remain off
 
