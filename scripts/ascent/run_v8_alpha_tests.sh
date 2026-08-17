@@ -15,7 +15,7 @@ uv run --with pytest --with pytest-mock python -m pytest -q \
 
 (
   cd opendbc_repo
-  uv run --with pytest python -m pytest -q \
+  uv run --extra testing --with pytest python -m pytest -q \
     opendbc/car/subaru/tests/test_subaru.py \
     opendbc/car/subaru/tests/test_ascent_v6.py \
     opendbc/car/subaru/tests/test_ascent_v7_controller_panda_fuzz.py \
