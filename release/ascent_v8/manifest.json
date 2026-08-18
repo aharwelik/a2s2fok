@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "branch": "ascent-2023-v8-alpha",
-  "root_source_sha": "bab0f87b810442434a15477529b6e3e4d50a13b0",
+  "root_source_sha": "80dd4bb64cfac799f36c260e4bef7cc4a6ad0881",
   "opendbc_sha": "43c25925ac599e219f0f2b0eedc39e79355009eb",
-  "created_utc": "2026-08-18T07:40:14Z"
+  "created_utc": "2026-08-18T14:35:50Z"
 }
