@@ -57,7 +57,9 @@ def main() -> None:
   require(violations, "ALTERNATIVE_EXPERIENCE.ENABLE_MADS" in controls_ext, "Panda MADS authorization check is missing")
   require(violations, "clamp_speed_cap_accel" in long_planner, "no-phantom-acceleration clamp is missing")
   require(violations, "restrict,command=" in maintenance and "ssh-ed25519" in maintenance,
-          "restricted key-only maintenance transport is missing")
+          "restricted maintenance transport is missing")
+  require(violations, "OPERATOR_PUBLIC_KEY" in maintenance and "AUTHORIZED_KEYS" in maintenance,
+          "MacBook operator key is missing")
   require(violations, "PRIVATE KEY" not in maintenance, "private SSH material is embedded")
   require(violations, "ascentmaintenanced" in process_config and "enabled=COMMA_HARDWARE" in process_config,
           "device-only maintenance daemon is not registered")
@@ -75,9 +77,10 @@ def main() -> None:
     "violations": violations,
     "bus0_angle_steering": "SUBARU_BASE_TX_MSGS(SUBARU_MAIN_BUS, MSG_SUBARU_ES_LKAS_ANGLE)" in subaru_safety,
     "exact_ascent_alpha_longitudinal": "candidate == CAR.SUBARU_ASCENT_2023" in subaru_interface,
-    "restricted_key_only_ssh": "restrict,command=" in maintenance,
+    "restricted_maintenance_key": "restrict,command=" in maintenance,
+    "macbook_operator_key": "OPERATOR_PUBLIC_KEY" in maintenance,
     "maintenance_client_password_login_disabled": "PasswordAuthentication=no" in maintenance_client,
-    "arbitrary_onroad_shell": False,
+    "macbook_operator_shell": "OPERATOR_PUBLIC_KEY" in maintenance,
   }
   print(json.dumps(result, indent=2))
   raise SystemExit(1 if violations else 0)

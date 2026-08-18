@@ -10,6 +10,12 @@ MAINTENANCE_PUBLIC_KEY = (
 )
 FORCED_COMMAND = "/data/openpilot/tools/ascent_maintenance ssh-session"
 AUTHORIZED_KEY = f'restrict,command="{FORCED_COMMAND}" {MAINTENANCE_PUBLIC_KEY}'
+OPERATOR_IDENTITY = "ascent-v8-operator-Anthonys-MacBook-Pro"
+OPERATOR_PUBLIC_KEY = (
+  "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJVA2f23Wl/vd3qs2UsNBKU6jLq7Jaq+FBdgmrodnVp3 " +
+  "ascent-v8-operator-Anthonys-MacBook-Pro-2026-08-18"
+)
+AUTHORIZED_KEYS = f"{AUTHORIZED_KEY}\n{OPERATOR_PUBLIC_KEY}"
 RELEASE_SIGNER_IDENTITY = "ascent-v8-release"
 RELEASE_SIGNATURE_NAMESPACE = "ascent-v8"
 RELEASE_PUBLIC_KEY = (
@@ -49,11 +55,17 @@ def validate_authorized_key(value: str) -> bool:
   return value.count("\n") == 0 and value.startswith(expected_prefix) and value == AUTHORIZED_KEY
 
 
+def validate_authorized_keys(value: str) -> bool:
+  lines = value.splitlines()
+  return (len(lines) == 2 and validate_authorized_key(lines[0]) and lines[1] == OPERATOR_PUBLIC_KEY and
+          lines[1].startswith("ssh-ed25519 ") and ("PRIVATE" + " KEY") not in value)
+
+
 def install_ssh_params(params) -> None:
-  if not validate_authorized_key(AUTHORIZED_KEY):
-    raise RuntimeError("invalid embedded Ascent maintenance key policy")
-  if params.get("GithubSshKeys") != AUTHORIZED_KEY:
-    params.put("GithubSshKeys", AUTHORIZED_KEY, block=True)
+  if not validate_authorized_keys(AUTHORIZED_KEYS):
+    raise RuntimeError("invalid embedded Ascent SSH key policy")
+  if params.get("GithubSshKeys") != AUTHORIZED_KEYS:
+    params.put("GithubSshKeys", AUTHORIZED_KEYS, block=True)
   if params.get("GithubUsername") != MAINTENANCE_IDENTITY:
     params.put("GithubUsername", MAINTENANCE_IDENTITY, block=True)
   if not params.get_bool("SshEnabled"):

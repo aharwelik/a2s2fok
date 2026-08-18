@@ -79,7 +79,7 @@ def status(params: Params, repo: Path = REPO) -> dict:
   usbgpu_active = params.get("UsbGpuActive")
   model_mode = "loading" if usbgpu_loading else "Chestnut" if usbgpu_active is True else "native" if usbgpu_active is False else "unknown"
   result = {
-    "maintenance_transport": "restricted-key-only",
+    "maintenance_transport": "restricted-maintenance-plus-macbook-operator",
     "gate": gate(params),
     "repo": str(repo),
     "model_mode": model_mode,

@@ -11,10 +11,14 @@ from openpilot.sunnypilot.system.ascent_maintenance.cli import (
 )
 from openpilot.sunnypilot.system.ascent_maintenance.policy import (
   AUTHORIZED_KEY,
+  AUTHORIZED_KEYS,
   EXPECTED_BRANCH,
+  OPERATOR_PUBLIC_KEY,
   VehicleGateInputs,
   evaluate_mutation_gate,
+  install_ssh_params,
   validate_authorized_key,
+  validate_authorized_keys,
 )
 
 
@@ -22,6 +26,23 @@ def test_embedded_key_is_restricted_public_ed25519():
   assert validate_authorized_key(AUTHORIZED_KEY)
   assert AUTHORIZED_KEY.startswith('restrict,command="/data/openpilot/tools/ascent_maintenance ssh-session" ssh-ed25519 ')
   assert "PRIVATE KEY" not in AUTHORIZED_KEY
+
+
+def test_macbook_operator_key_is_unrestricted_second_public_key():
+  assert validate_authorized_keys(AUTHORIZED_KEYS)
+  assert AUTHORIZED_KEYS.splitlines() == [AUTHORIZED_KEY, OPERATOR_PUBLIC_KEY]
+  assert OPERATOR_PUBLIC_KEY.startswith("ssh-ed25519 ")
+  assert "restrict" not in OPERATOR_PUBLIC_KEY
+  assert "command=" not in OPERATOR_PUBLIC_KEY
+
+
+def test_install_keeps_recovery_and_full_macbook_access():
+  params = FakeParams()
+
+  install_ssh_params(params)
+
+  assert params.values["GithubSshKeys"] == AUTHORIZED_KEYS
+  assert params.values["SshEnabled"] is True
 
 
 def test_mutation_gate_is_offroad_disengaged_only():
