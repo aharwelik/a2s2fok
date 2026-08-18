@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import shlex
+import shutil
 import subprocess
 import tarfile
 import tempfile
@@ -37,6 +38,7 @@ SAFE_PARAM_NAMES = (
   "Version", "GitCommit", "GitBranch", "LastManagerExitReason", "CurrentRoute",
   "IsOffroad", "IsEngaged", "ControlsReady", "PandaHeartbeatLost", "LastUpdateException",
   "AscentV8ShadowStatus", "UsbGpuActive", "UsbGpuLoading",
+  "AscentV8CalibrationStatus",
 )
 
 
@@ -72,6 +74,7 @@ def require_mutation_gate(params: Params) -> None:
 def status(params: Params, repo: Path = REPO) -> dict:
   install_ssh_params(params)
   shadow = params.get("AscentV8ShadowStatus")
+  calibration = params.get("AscentV8CalibrationStatus")
   usbgpu_loading = params.get_bool("UsbGpuLoading")
   usbgpu_active = params.get("UsbGpuActive")
   model_mode = "loading" if usbgpu_loading else "Chestnut" if usbgpu_active is True else "native" if usbgpu_active is False else "unknown"
@@ -81,6 +84,7 @@ def status(params: Params, repo: Path = REPO) -> dict:
     "repo": str(repo),
     "model_mode": model_mode,
     "shadow": shadow,
+    "calibration": calibration,
   }
   if repo.is_dir() and (repo / ".git").exists():
     result.update({
@@ -99,7 +103,8 @@ def _capture(command: list[str], cwd: Path, timeout: int = 20) -> str:
     return f"COMMAND_FAILED: {shlex.join(command)}: {error}\n"
 
 
-def collect_logs(params: Params, repo: Path = REPO, destination: Path = Path("/data/ascent_maintenance/bundles")) -> Path:
+def collect_logs(params: Params, repo: Path = REPO, destination: Path = Path("/data/ascent_maintenance/bundles"),
+                 calibration_root: Path = Path("/data/ascent_maintenance/calibration")) -> Path:
   require_mutation_gate(params)
   timestamp = datetime.datetime.now(datetime.UTC).strftime("%Y%m%dT%H%M%SZ")
   destination.mkdir(parents=True, exist_ok=True)
@@ -124,6 +129,10 @@ def collect_logs(params: Params, repo: Path = REPO, destination: Path = Path("/d
     }
     for filename, command in commands.items():
       (temp_dir / filename).write_text(_capture(command, repo))
+    calibration_dir = temp_dir / "calibration"
+    calibration_dir.mkdir()
+    for path in sorted(calibration_root.glob("*.jsonl"), key=lambda item: item.stat().st_mtime)[-8:]:
+      shutil.copy2(path, calibration_dir / path.name)
     with tarfile.open(bundle, "w:gz") as archive:
       for path in sorted(temp_dir.iterdir()):
         archive.add(path, arcname=path.name)

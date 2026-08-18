@@ -1,6 +1,14 @@
+import tarfile
+
 import pytest
 
-from openpilot.sunnypilot.system.ascent_maintenance.cli import MaintenanceError, parse_ssh_command, status, validate_release_manifest
+from openpilot.sunnypilot.system.ascent_maintenance.cli import (
+  MaintenanceError,
+  collect_logs,
+  parse_ssh_command,
+  status,
+  validate_release_manifest,
+)
 from openpilot.sunnypilot.system.ascent_maintenance.policy import (
   AUTHORIZED_KEY,
   EXPECTED_BRANCH,
@@ -53,6 +61,7 @@ class FakeParams:
       "UsbGpuLoading": False,
       "UsbGpuActive": True,
       "AscentV8ShadowStatus": {"schema": 1, "evaluations": 42, "last": {"trajectory": "VALID"}},
+      "AscentV8CalibrationStatus": {"schema": 1, "recording": True, "route": "first-drive"},
     }
 
   def get(self, key):
@@ -74,3 +83,17 @@ def test_status_exposes_live_model_and_shadow_telemetry(tmp_path):
   assert result["model_mode"] == "Chestnut"
   assert result["shadow"]["evaluations"] == 42
   assert result["shadow"]["last"]["trajectory"] == "VALID"
+  assert result["calibration"]["route"] == "first-drive"
+
+
+def test_log_bundle_contains_automatic_calibration_journal(tmp_path):
+  repo = tmp_path / "repo"
+  repo.mkdir()
+  calibration = tmp_path / "calibration"
+  calibration.mkdir()
+  (calibration / "first-drive.jsonl").write_text('{"schema":1}\n')
+
+  bundle = collect_logs(FakeParams(), repo, tmp_path / "bundles", calibration)
+
+  with tarfile.open(bundle) as archive:
+    assert "calibration/first-drive.jsonl" in archive.getnames()

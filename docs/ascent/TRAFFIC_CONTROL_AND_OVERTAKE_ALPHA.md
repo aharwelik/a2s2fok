@@ -19,6 +19,21 @@ Do not label `model_stop_prediction` as a red light or stop sign. The driving mo
 3. Present a controlled-lot stop-sign/light scenario. The normal model `shouldStop` and `desiredAcceleration` signals feed the longitudinal planner and the Subaru controller's gradual command ramp.
 4. For the obstacle bypass, enable **Ascent V8 obstacle-bypass evidence**, wait for left-corridor readiness, then use the left blinker. Use the right blinker after the obstacle for the normal return lane change.
 
+## Automatic first-drive data
+
+No recording toggle is required. On every exact 2023 Ascent drive, V8 writes a 10 Hz calibration journal under
+`/data/ascent_maintenance/calibration`. It pairs vehicle speed/acceleration and road pitch with the model stop request,
+longitudinal plan, requested/applied actuators, physical buttons, and the derived Subaru throttle/RPM/brake commands.
+The normal logger simultaneously retains the full route rlog, byte-for-byte CAN history, and road-camera video. The
+recorder also marks that route for the normal qlog/qcamera upload queue so its route identifier and preview video are
+available remotely when connectivity is present.
+
+After the drive, download the calibration journal and its route identifier with:
+
+`./tools/ascent_v8_ssh.py <device-ip-or-name> logs --output ~/Downloads/ascent-first-drive.tar.gz`
+
+The recorder keeps the newest eight journals within a 256 MiB cap, and the SSH bundle automatically includes them.
+
 Implemented vehicle-specific pieces:
 
 - `ES_Brake`, `ES_Distance`, and `ES_Status` transmit on bus 1 for Gen2; angle steering remains `0x124` on bus 0.

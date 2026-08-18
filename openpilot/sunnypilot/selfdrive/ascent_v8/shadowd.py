@@ -11,6 +11,10 @@ from openpilot.common.swaglog import cloudlog
 from opendbc.car.subaru.values import CAR
 from opendbc.car.structs import car
 from openpilot.sunnypilot.selfdrive.ascent_v8.adaptive_curve import CurveEnvelope
+from openpilot.sunnypilot.selfdrive.ascent_v8.calibration_recorder import (
+  CalibrationRecorder,
+  build_calibration_sample,
+)
 from openpilot.sunnypilot.selfdrive.ascent_v8.lane_position_shadow import LanePositionInput, LanePositionShadow
 from openpilot.sunnypilot.selfdrive.ascent_v8.pass_adviser import PassAdviser, PassInput
 from openpilot.sunnypilot.selfdrive.ascent_v8.safety_guard import FinalCommandShadowGuard, GuardInput
@@ -270,7 +274,8 @@ def evaluate_shadow(car_state, model, *, controls_state=None, car_control=None,
 
 
 def main() -> None:
-  sm = messaging.SubMaster(["carState", "modelV2", "controlsState", "carControl", "radarState"])
+  sm = messaging.SubMaster(["carState", "modelV2", "controlsState", "carControl", "carOutput", "radarState",
+                            "longitudinalPlan"])
   params = Params()
   curve_envelope = CurveEnvelope()
   traffic_control_shadow = TrafficControlShadow()
@@ -280,12 +285,15 @@ def main() -> None:
   last_log_s = 0.0
   last_fingerprint: tuple | None = None
   exact_vehicle = False
+  calibration_recorder: CalibrationRecorder | None = None
+  last_calibration_error_s = 0.0
   while True:
     sm.update(1000)
     if not exact_vehicle:
       exact_vehicle = _is_exact_ascent_2023(params)
       if not exact_vehicle:
         continue
+      calibration_recorder = CalibrationRecorder(params)
     if sm.updated["modelV2"] and sm.alive["carState"] and sm.valid["carState"] and sm.valid["modelV2"]:
       now_ns = time.monotonic_ns()
       now_s = now_ns / 1e9
@@ -306,6 +314,18 @@ def main() -> None:
           pass_adviser_enabled=params.get_bool("AscentV8LaneChangeEvidenceEnabled"),
         )
         telemetry.observe(result)
+        if (calibration_recorder is not None and sm.valid["carControl"] and sm.valid["carOutput"] and
+            sm.valid["longitudinalPlan"]):
+          try:
+            sample = build_calibration_sample(
+              sm["carState"], sm["modelV2"], sm["carControl"], sm["carOutput"], sm["longitudinalPlan"],
+              shadow=result, monotonic_ns=now_ns,
+            )
+            calibration_recorder.record(sample, now_ns)
+          except Exception:
+            if now_s - last_calibration_error_s >= LOG_HEARTBEAT_S:
+              cloudlog.exception("Ascent V8 calibration recorder failed")
+              last_calibration_error_s = now_s
         fingerprint = (result["trajectory"], result["space"], tuple(result["trajectory_reasons"]),
                        tuple(result["lane_reasons"]), result["model_big"], result["model_stop_prediction"],
                        result["driver_left_lane_change_candidate"])
