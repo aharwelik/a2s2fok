@@ -62,7 +62,7 @@ def _value(sample: dict, *keys: str):
   return value
 
 
-def _distance_between(samples: list[dict], start_ns: int, stop_ns: int) -> float:
+def distance_between(samples: list[dict], start_ns: int, stop_ns: int) -> float:
   points = [sample for sample in samples if start_ns <= int(sample["mono_ns"]) <= stop_ns]
   distance = 0.0
   for previous, current in zip(points, points[1:], strict=False):
@@ -80,7 +80,7 @@ def _trigger_timing(samples: list[dict], stop_ns: int, predicate) -> dict | None
   trigger_ns = int(triggered["mono_ns"])
   return {
     "lead_s": round((stop_ns - trigger_ns) / 1e9, 3),
-    "distance_m": round(_distance_between(samples, trigger_ns, stop_ns), 3),
+    "distance_m": round(distance_between(samples, trigger_ns, stop_ns), 3),
   }
 
 

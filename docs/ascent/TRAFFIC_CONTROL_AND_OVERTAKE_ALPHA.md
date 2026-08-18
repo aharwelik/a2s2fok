@@ -102,6 +102,24 @@ early-distance requirement and must not feed a stop target. The next offline ite
 crops, temporal tracking, a separately validated red/yellow/green classifier, and local fine-tuning rather than a lower
 confidence threshold.
 
+The five corresponding 1344x760 `fcamera.hevc` segments were later copied read-only and replayed with the same object
+model over the full frame plus two overlapping 760-pixel tiles. Object proposals moved earlier: the stop signs confirmed
+at 40.607 m and 19.863 m, while the three signal objects confirmed at 74.035 m, 44.687 m, and 126.062 m. Conservative
+phase-only red evidence confirmed at 32.555 m, 2.762 m, and 27.975 m. Requiring two same-phase heads as a weak
+ego-relevance candidate remained later still: 6.319 m, 2.762 m, and 23.656 m. One route correctly produced a stable
+two-head yellow candidate at 25.595 m followed by red at 2.762 m. These image-position heuristics are not ego-lane
+ground truth.
+
+Those distances are still too late for smooth stopping. With zero processing/actuation latency, a 1.5 m/s2 maximum
+deceleration, and the existing 1.0 m/s3 command ramp, all five state/relevance-candidate confirmations had negative
+stopping-distance margin: -5.499 m, -14.279 m, -16.958 m, -3.214 m, and -5.405 m. This is an optimistic lower bound;
+measured latency would make it worse. Full-resolution object proposals are now early enough on several signals, so the
+next bottleneck is earlier phase and ego-path ownership. Both stop signs still need earlier locally fine-tuned detection.
+
+Reproduce this offline-only report from the saved full-resolution segments with:
+
+`uv run --python 3.12 --with ultralytics python tools/ascent_v8_perception_replay.py --labels <private-labels.jsonl> --journal <calibration.jsonl> --realdata <saved-realdata> --model <pinned-model.pt> --output <private-report.json>`
+
 Possible research datasets have important scope limits:
 
 - [Bosch Small Traffic Lights](https://hci.iwr.uni-heidelberg.de/node/6132) provides 13,427 images and roughly 24,000 state labels, but is non-commercial and explicitly not intended to cover production cases.

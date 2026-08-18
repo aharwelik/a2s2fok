@@ -50,6 +50,13 @@ replay, controlled-course, and physical-device gated.
 - Do not promote the generic COCO object baseline. It eventually confirmed all five expected objects, but only one by
   40 meters, no stop signs by 40 meters, and no signal phase or ego relevance. Use it only to propose high-resolution
   crops for the camera-first detector.
+- Use the full-resolution tiled replay as the new baseline. It moved signal-object proposals to 44.687-126.062 meters
+  and one stop sign to 40.607 meters, but red phase evidence remained at 2.762-32.555 meters, conservative two-head
+  relevance candidates remained at 2.762-23.656 meters, and all five controls had negative jerk-limited smooth-stop
+  margin even with zero latency. Improve phase/ownership first; locally fine-tune both stop-sign approaches for earlier
+  confirmation.
+- Add measured camera, detector, planner, and Subaru-command latency to the jerk-limited stop-distance gate. A replay
+  candidate is not stop-ready unless its worst-case margin remains nonnegative after that latency and uncertainty.
 
 ## P1 - curves and turns
 
