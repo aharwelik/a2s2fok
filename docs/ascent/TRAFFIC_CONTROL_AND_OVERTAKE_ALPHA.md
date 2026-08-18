@@ -32,6 +32,14 @@ After the drive, download the calibration journal and its route identifier with:
 
 `./tools/ascent_v8_ssh.py <device-ip-or-name> logs --output ~/Downloads/ascent-first-drive.tar.gz`
 
+After extracting the bundle, inventory candidate stops with:
+
+`python3 tools/ascent_v8_evidence.py <extracted-directory>/calibration/*.jsonl`
+
+The extractor reports lead loss, physical braking, model/planner stop timing, and whether comma longitudinal control
+was active. Every candidate remains `unreviewed` until its road-camera segment is manually labeled; it does not infer
+that a stop was caused by a sign or signal from braking telemetry alone.
+
 The recorder keeps the newest eight journals within a 256 MiB cap, and the SSH bundle automatically includes them.
 
 Implemented vehicle-specific pieces:
