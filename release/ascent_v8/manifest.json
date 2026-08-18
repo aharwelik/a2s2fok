@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "branch": "v8",
-  "root_source_sha": "c27e0b42bfccf873d18b8b7cd711dd2fbf680568",
-  "opendbc_sha": "43c25925ac599e219f0f2b0eedc39e79355009eb",
-  "created_utc": "2026-08-18T17:27:39Z"
+  "root_source_sha": "b118a3662c2881ada02b69315443e64fdd2e7575",
+  "opendbc_sha": "964d003d55d0bab301d28d8c102efc20062fda9e",
+  "created_utc": "2026-08-18T19:11:44Z"
 }
