@@ -8,6 +8,7 @@ APPROACH_SPEED_MPS = 5.0
 STOPPED_SPEED_MPS = 0.3
 PRE_STOP_WINDOW_NS = 20_000_000_000
 POST_STOP_WINDOW_NS = 3_000_000_000
+LABEL_MATCH_TOLERANCE_NS = 2_000_000_000
 
 
 def load_calibration(path: Path) -> tuple[str, list[dict]]:
@@ -81,7 +82,41 @@ def stop_candidates(route: str, samples: list[dict]) -> list[dict]:
   return events
 
 
-def analyze_files(paths: list[Path]) -> dict:
+def load_labels(path: Path) -> list[dict]:
+  with path.open() as source:
+    return [json.loads(line) for line in source if line.strip()]
+
+
+def apply_confirmed_labels(events: list[dict], labels: list[dict]) -> int:
+  matched_indices: set[int] = set()
+  confirmed_labels = [
+    label for label in labels
+    if label.get("video_review") == "confirmed"
+    and label.get("control_type") in ("stop_sign", "traffic_signal")
+    and label.get("approx_mono_ns") is not None
+  ]
+  for label in confirmed_labels:
+    candidates = [
+      (abs(int(event["stopped_mono_ns"]) - int(label["approx_mono_ns"])), index)
+      for index, event in enumerate(events)
+      if index not in matched_indices and event["route"] == label.get("route")
+    ]
+    if not candidates:
+      continue
+    delta_ns, index = min(candidates)
+    if delta_ns > LABEL_MATCH_TOLERANCE_NS:
+      continue
+    events[index].update({
+      "label": label["control_type"],
+      "label_state": label.get("state"),
+      "label_source": label.get("source"),
+      "video_review": "confirmed",
+    })
+    matched_indices.add(index)
+  return len(confirmed_labels) - len(matched_indices)
+
+
+def analyze_files(paths: list[Path], labels_path: Path | None = None) -> dict:
   routes = []
   events = []
   for path in paths:
@@ -89,15 +124,20 @@ def analyze_files(paths: list[Path]) -> dict:
     route_events = stop_candidates(route, samples)
     routes.append({"route": route, "samples": len(samples), "candidate_stops": len(route_events)})
     events.extend(route_events)
+  unmatched_confirmed_labels = 0
+  if labels_path is not None:
+    unmatched_confirmed_labels = apply_confirmed_labels(events, load_labels(labels_path))
+  labeled_events = [event for event in events if event["label"] != "unreviewed"]
   return {
     "routes": routes,
     "candidate_stops": events,
     "coverage": {
       "recorded_journals": len(routes),
-      "unreviewed_stop_candidates": len(events),
-      "qualified_routes": 0,
-      "labeled_stop_sign_approaches": 0,
-      "labeled_signal_approaches": 0,
+      "unreviewed_stop_candidates": len(events) - len(labeled_events),
+      "qualified_routes": len({event["route"] for event in labeled_events}),
+      "labeled_stop_sign_approaches": sum(event["label"] == "stop_sign" for event in labeled_events),
+      "labeled_signal_approaches": sum(event["label"] == "traffic_signal" for event in labeled_events),
+      "unmatched_confirmed_labels": unmatched_confirmed_labels,
       "required_validation_routes": 25,
       "required_stop_sign_approaches": 300,
       "required_signal_approaches": 300,

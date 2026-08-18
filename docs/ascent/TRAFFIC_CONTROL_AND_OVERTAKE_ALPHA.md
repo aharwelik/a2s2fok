@@ -36,9 +36,16 @@ After extracting the bundle, inventory candidate stops with:
 
 `python3 tools/ascent_v8_evidence.py <extracted-directory>/calibration/*.jsonl`
 
+Keep manual labels outside the source tree and merge only video-confirmed entries with:
+
+`python3 tools/ascent_v8_evidence.py --labels <private-labels.jsonl> <extracted-directory>/calibration/*.jsonl`
+
+Add `--output <private-report.json>` to save the merged report without copying private labels into the repository.
+
 The extractor reports lead loss, physical braking, model/planner stop timing, and whether comma longitudinal control
-was active. Every candidate remains `unreviewed` until its road-camera segment is manually labeled; it does not infer
-that a stop was caused by a sign or signal from braking telemetry alone.
+was active. Every candidate remains `unreviewed` until a confirmed road-camera label matches the route and stop time;
+pending or distant labels are not counted. It does not infer that a stop was caused by a sign or signal from braking
+telemetry alone.
 
 The recorder keeps the newest eight journals within a 256 MiB cap, and the SSH bundle automatically includes them.
 

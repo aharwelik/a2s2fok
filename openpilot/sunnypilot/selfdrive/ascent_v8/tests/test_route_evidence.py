@@ -57,3 +57,33 @@ def test_analyze_files_reports_coverage(tmp_path):
   assert result["coverage"]["recorded_journals"] == 1
   assert result["coverage"]["unreviewed_stop_candidates"] == 1
   assert result["coverage"]["qualified_routes"] == 0
+
+
+def test_analyze_files_applies_only_confirmed_video_labels(tmp_path):
+  journal = tmp_path / "route.jsonl"
+  rows = [
+    {"schema": 1, "kind": "ascent_v8_calibration", "route": "route-a"},
+    sample(0, 6.0), sample(1, 0.0), sample(4, 7.0), sample(5, 0.0),
+  ]
+  journal.write_text("".join(json.dumps(row) + "\n" for row in rows))
+  labels = tmp_path / "labels.jsonl"
+  label_rows = [
+    {"route": "route-a", "approx_mono_ns": 1_100_000_000, "control_type": "stop_sign",
+     "state": "stop_required", "source": "qcamera", "video_review": "confirmed"},
+    {"route": "route-a", "approx_mono_ns": 5_000_000_000, "control_type": "traffic_signal",
+     "state": "red", "source": "driver_report", "video_review": "pending"},
+    {"route": "route-a", "approx_mono_ns": 20_000_000_000, "control_type": "traffic_signal",
+     "state": "red", "source": "qcamera", "video_review": "confirmed"},
+  ]
+  labels.write_text("".join(json.dumps(row) + "\n" for row in label_rows))
+
+  result = analyze_files([journal], labels)
+
+  assert result["candidate_stops"][0]["label"] == "stop_sign"
+  assert result["candidate_stops"][0]["label_state"] == "stop_required"
+  assert result["candidate_stops"][1]["label"] == "unreviewed"
+  assert result["coverage"]["qualified_routes"] == 1
+  assert result["coverage"]["labeled_stop_sign_approaches"] == 1
+  assert result["coverage"]["labeled_signal_approaches"] == 0
+  assert result["coverage"]["unreviewed_stop_candidates"] == 1
+  assert result["coverage"]["unmatched_confirmed_labels"] == 1
