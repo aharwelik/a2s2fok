@@ -45,7 +45,9 @@ Add `--output <private-report.json>` to save the merged report without copying p
 The extractor reports lead loss, physical braking, model/planner stop timing, and whether comma longitudinal control
 was active. Every candidate remains `unreviewed` until a confirmed road-camera label matches the route and stop time;
 pending or distant labels are not counted. It does not infer that a stop was caused by a sign or signal from braking
-telemetry alone.
+telemetry alone. Confirmed lead, cross-traffic, and parking/turn maneuver stops are tracked separately so they cannot
+inflate traffic-control coverage. The report also groups model, planner, longitudinal-active, and brake-output responses
+by confirmed cause, providing a replay baseline for later builds.
 
 The recorder keeps the newest eight journals within a 256 MiB cap, and the SSH bundle automatically includes them.
 

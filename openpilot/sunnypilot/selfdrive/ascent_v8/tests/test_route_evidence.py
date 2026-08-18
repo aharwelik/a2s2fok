@@ -64,6 +64,7 @@ def test_analyze_files_applies_only_confirmed_video_labels(tmp_path):
   rows = [
     {"schema": 1, "kind": "ascent_v8_calibration", "route": "route-a"},
     sample(0, 6.0), sample(1, 0.0), sample(4, 7.0), sample(5, 0.0),
+    sample(8, 8.0), sample(9, 0.0),
   ]
   journal.write_text("".join(json.dumps(row) + "\n" for row in rows))
   labels = tmp_path / "labels.jsonl"
@@ -72,6 +73,8 @@ def test_analyze_files_applies_only_confirmed_video_labels(tmp_path):
      "state": "stop_required", "source": "qcamera", "video_review": "confirmed"},
     {"route": "route-a", "approx_mono_ns": 5_000_000_000, "control_type": "traffic_signal",
      "state": "red", "source": "driver_report", "video_review": "pending"},
+    {"route": "route-a", "approx_mono_ns": 9_000_000_000, "control_type": "lead_stop",
+     "state": "lead_stationary", "source": "qcamera", "video_review": "confirmed"},
     {"route": "route-a", "approx_mono_ns": 20_000_000_000, "control_type": "traffic_signal",
      "state": "red", "source": "qcamera", "video_review": "confirmed"},
   ]
@@ -82,8 +85,20 @@ def test_analyze_files_applies_only_confirmed_video_labels(tmp_path):
   assert result["candidate_stops"][0]["label"] == "stop_sign"
   assert result["candidate_stops"][0]["label_state"] == "stop_required"
   assert result["candidate_stops"][1]["label"] == "unreviewed"
+  assert result["candidate_stops"][2]["label"] == "lead_stop"
   assert result["coverage"]["qualified_routes"] == 1
+  assert result["coverage"]["video_confirmed_approaches"] == 2
   assert result["coverage"]["labeled_stop_sign_approaches"] == 1
   assert result["coverage"]["labeled_signal_approaches"] == 0
+  assert result["coverage"]["labeled_lead_stop_approaches"] == 1
   assert result["coverage"]["unreviewed_stop_candidates"] == 1
   assert result["coverage"]["unmatched_confirmed_labels"] == 1
+  assert result["response_summary"]["stop_sign"]["approaches"] == 1
+  assert result["response_summary"]["lead_stop"]["approaches"] == 1
+  assert result["response_summary"]["traffic_control_total"] == {
+    "approaches": 1,
+    "model_stop_while_moving": 0,
+    "planner_stop": 0,
+    "comma_longitudinal_active": 0,
+    "comma_brake_output": 0,
+  }

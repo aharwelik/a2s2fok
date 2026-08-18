@@ -9,6 +9,13 @@ STOPPED_SPEED_MPS = 0.3
 PRE_STOP_WINDOW_NS = 20_000_000_000
 POST_STOP_WINDOW_NS = 3_000_000_000
 LABEL_MATCH_TOLERANCE_NS = 2_000_000_000
+CONFIRMED_LABEL_TYPES = (
+  "stop_sign",
+  "traffic_signal",
+  "lead_stop",
+  "cross_traffic_stop",
+  "maneuver_stop",
+)
 
 
 def load_calibration(path: Path) -> tuple[str, list[dict]]:
@@ -92,7 +99,7 @@ def apply_confirmed_labels(events: list[dict], labels: list[dict]) -> int:
   confirmed_labels = [
     label for label in labels
     if label.get("video_review") == "confirmed"
-    and label.get("control_type") in ("stop_sign", "traffic_signal")
+    and label.get("control_type") in CONFIRMED_LABEL_TYPES
     and label.get("approx_mono_ns") is not None
   ]
   for label in confirmed_labels:
@@ -116,6 +123,33 @@ def apply_confirmed_labels(events: list[dict], labels: list[dict]) -> int:
   return len(confirmed_labels) - len(matched_indices)
 
 
+def summarize_responses(events: list[dict]) -> dict:
+  summary = {}
+  for label in CONFIRMED_LABEL_TYPES:
+    labeled = [event for event in events if event["label"] == label]
+    if not labeled:
+      continue
+    summary[label] = {
+      "approaches": len(labeled),
+      "driver_braked": sum(event["driver_braked"] for event in labeled),
+      "lead_seen": sum(event["lead_seen"] for event in labeled),
+      "model_stop_while_moving": sum(event["model_stop_while_moving"] for event in labeled),
+      "planner_stop": sum(event["planner_stop"] for event in labeled),
+      "comma_longitudinal_active": sum(event["comma_longitudinal_active"] for event in labeled),
+      "comma_brake_output": sum(event["comma_brake_output"] for event in labeled),
+    }
+  traffic_controls = [event for event in events if event["label"] in ("stop_sign", "traffic_signal")]
+  if traffic_controls:
+    summary["traffic_control_total"] = {
+      "approaches": len(traffic_controls),
+      "model_stop_while_moving": sum(event["model_stop_while_moving"] for event in traffic_controls),
+      "planner_stop": sum(event["planner_stop"] for event in traffic_controls),
+      "comma_longitudinal_active": sum(event["comma_longitudinal_active"] for event in traffic_controls),
+      "comma_brake_output": sum(event["comma_brake_output"] for event in traffic_controls),
+    }
+  return summary
+
+
 def analyze_files(paths: list[Path], labels_path: Path | None = None) -> dict:
   routes = []
   events = []
@@ -131,12 +165,17 @@ def analyze_files(paths: list[Path], labels_path: Path | None = None) -> dict:
   return {
     "routes": routes,
     "candidate_stops": events,
+    "response_summary": summarize_responses(events),
     "coverage": {
       "recorded_journals": len(routes),
       "unreviewed_stop_candidates": len(events) - len(labeled_events),
       "qualified_routes": len({event["route"] for event in labeled_events}),
+      "video_confirmed_approaches": len(labeled_events),
       "labeled_stop_sign_approaches": sum(event["label"] == "stop_sign" for event in labeled_events),
       "labeled_signal_approaches": sum(event["label"] == "traffic_signal" for event in labeled_events),
+      "labeled_lead_stop_approaches": sum(event["label"] == "lead_stop" for event in labeled_events),
+      "labeled_cross_traffic_approaches": sum(event["label"] == "cross_traffic_stop" for event in labeled_events),
+      "labeled_maneuver_stop_approaches": sum(event["label"] == "maneuver_stop" for event in labeled_events),
       "unmatched_confirmed_labels": unmatched_confirmed_labels,
       "required_validation_routes": 25,
       "required_stop_sign_approaches": 300,

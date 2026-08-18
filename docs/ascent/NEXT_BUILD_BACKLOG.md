@@ -19,25 +19,6 @@ replay, controlled-course, and physical-device gated.
 - Automatically merge only video-confirmed labels. Pending, mismatched, and telemetry-only labels never count toward
   detector coverage.
 
-## P0 - ignition, sleep, and battery protection
-
-- Reproduce the Ascent ignition-line false wake with the car parked, engine off, gear in Park, and doors/locks logged.
-  Record `ignitionLine`, `ignitionCan`, harness state, voltage, CAN traffic, gear, door, brake, and engine state through
-  the complete offroad-to-false-onroad transition.
-- Determine whether the reasserted line is a Subaru door/telematics wake, a harness/connector issue, or a panda
-  ignition interpretation issue. Do not suppress ignition from timing alone.
-- Add engine RPM from the Subaru `Throttle.Engine_RPM` DBC signal to recorded car state and verify it against actual
-  engine starts and stop/start operation.
-- Design a fail-safe Ascent-specific false-wake filter only after logs distinguish a real start from a body-network
-  wake. A real start must always win immediately; an uncertain state must not enable controls.
-- Verify that a true offroad state dims the display, enables panda power saving, stops route recording, and reaches
-  hardware shutdown at the selected timeout.
-- Change the Ascent package's offroad timeout from the current 30-hour default to a user-visible 5-30 minute choice,
-  with 30 minutes as the initial conservative default. Validate wake-on-real-ignition and uploader completion before
-  release.
-- Add a parked power regression test: ignition fall, no false route, screen off, panda power save, measured draw,
-  shutdown, cold wake, and no battery-warning event after an overnight park.
-
 ## P0 - lead following and intersection ownership
 
 - Continue normal radar/model lead following while the lead is stable and in the ego path.
@@ -51,8 +32,8 @@ replay, controlled-course, and physical-device gated.
 
 ## P0 - stop signs and red lights
 
-- Finish manual review of every stop candidate from the first route, including partial/rolling stops and obscured
-  signs. Preserve exact approach speed, driver brake timing, lead state, model stop timing, and final stop position.
+- Preserve the completed manual review of all ten first-route stop candidates: two stop signs, three red signals, one
+  stopped-lead queue, one pedestrian/cross-traffic stop, and three parking/turn maneuvers.
 - Build a camera-first pipeline: high-resolution traffic-control crops, sign/signal classification, ego relevance,
   temporal tracking, calibrated distance/stop-line estimation, and stale/unknown output on disagreement.
 - Treat the driving model's `shouldStop` as corroborating intent only. It is not a sign classifier or signal-phase
@@ -94,6 +75,27 @@ replay, controlled-course, and physical-device gated.
 - Preserve stock EyeSight AEB and lane safety. Turning EyeSight features off does not add traffic-light perception.
 - Make UI wording distinguish DMS, steering saturation, stock EyeSight, lead following, and experimental traffic
   control so the source of an alert is obvious.
+
+## P2 - parked shutdown and battery protection
+
+- Preserve the observed key-off/restart sequence as a power-state fixture. The first route ended with engine RPM near
+  800, followed by the ignition-line falling edge. About 176 seconds later the line rose again, and raw Subaru
+  `Throttle.Engine_RPM` rose from zero to cranking/idle about 0.834 seconds later. Treat that second route as an actual
+  engine-running state, not a proven door-only false wake.
+- The driver does not remember opening a door. CarState's aggregate `doorOpen` bit is not driver-door proof and must
+  not be used to assign the cause of a wake or restart.
+- Add engine RPM from the Subaru `Throttle.Engine_RPM` DBC signal to recorded car state and verify it against actual
+  engine starts and stop/start operation.
+- If an unexplained onroad transition recurs without raw engine RPM, capture the full CAN transition before designing
+  any Ascent-specific wake filter. A real start must always win immediately; timing alone is never enough to suppress
+  ignition.
+- Verify that a true offroad state dims the display, enables panda power saving, stops route recording, and reaches
+  hardware shutdown at the selected timeout.
+- Change the Ascent package's offroad timeout from the current 30-hour default to a user-visible 5-30 minute choice,
+  with 30 minutes as the initial conservative default. Validate wake-on-real-ignition and uploader completion before
+  release.
+- Add a parked power regression test: ignition and engine-RPM fall, route close, screen off, panda power save, measured
+  draw, shutdown, cold wake, and no battery-warning event after an overnight park.
 
 ## Release proof gate
 
