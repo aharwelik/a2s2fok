@@ -116,9 +116,26 @@ stopping-distance margin: -5.499 m, -14.279 m, -16.958 m, -3.214 m, and -5.405 m
 measured latency would make it worse. Full-resolution object proposals are now early enough on several signals, so the
 next bottleneck is earlier phase and ego-path ownership. Both stop signs still need earlier locally fine-tuned detection.
 
+An object-only scan then sampled all 28 qcamera segments at 1 Hz over 10.020 km, rather than looking only near the five
+labeled stops. It recovered all five labeled controls in two consecutive frames. Manual review of its 31 low-threshold
+runs found 21 real-control runs and 10 false runs. Eight of the false runs were stop-sign proposals on red street or
+plaza banners, a blue informational sign, and a yellow warning sign. At 0.25 confidence the scan retained all five known
+controls but still retained two false stop-sign runs, equivalent to 19.960 reviewed false runs per 100 km on this route.
+At 0.50 it removed every reviewed false run but lost the segment-2 stop sign. Confidence tuning alone therefore cannot
+meet both recall and false-stop gates; the decoys are hard negatives for local fine-tuning and ego relevance.
+
+The conservative HSV phase probe returned a color on only three of the 19 manually confirmed traffic-light runs: one
+yellow and two green, all visually consistent; the other 16 remained unknown. Those qcamera crops were only 6-23 pixels
+wide. This correctly avoids guessing but cannot provide usable phase coverage. Full-resolution segments 4, 5, 8, 9,
+11, 15, 16, 17, and 18 are the next bounded recovery set once the device reports offroad.
+
 Reproduce this offline-only report from the saved full-resolution segments with:
 
 `uv run --python 3.12 --with ultralytics python tools/ascent_v8_perception_replay.py --labels <private-labels.jsonl> --journal <calibration.jsonl> --realdata <saved-realdata> --model <pinned-model.pt> --output <private-report.json>`
+
+Scan every saved qcamera segment for review candidates with:
+
+`uv run --python 3.12 --with ultralytics python tools/ascent_v8_route_scan.py --video-root <saved-realdata> --model <pinned-model.pt> --output <private-scan.json>`
 
 Possible research datasets have important scope limits:
 

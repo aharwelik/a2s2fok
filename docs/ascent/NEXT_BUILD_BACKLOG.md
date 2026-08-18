@@ -57,6 +57,12 @@ replay, controlled-course, and physical-device gated.
   confirmation.
 - Add measured camera, detector, planner, and Subaru-command latency to the jerk-limited stop-distance gate. A replay
   candidate is not stop-ready unless its worst-case margin remains nonnegative after that latency and uncertainty.
+- Train and hold out the first-route hard negatives: red street/plaza banners, a blue informational sign, and a yellow
+  warning sign. The generic detector at 0.25 retained all five known controls but still proposed two false stop signs in
+  10.020 km; at 0.50 it removed reviewed false runs but missed a true stop sign. Do not solve this by threshold tuning.
+- After the comma reports offroad, recover full-resolution route-4 segments 4, 5, 8, 9, 11, 15, 16, 17, and 18 for
+  phase review. The qcamera probe produced only one yellow and two green outputs across 19 confirmed-light runs; 16
+  stayed unknown because the crops were only 6-23 pixels wide.
 
 ## P1 - curves and turns
 
