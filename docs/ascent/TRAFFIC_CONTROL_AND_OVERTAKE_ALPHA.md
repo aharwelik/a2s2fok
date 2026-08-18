@@ -42,12 +42,36 @@ Keep manual labels outside the source tree and merge only video-confirmed entrie
 
 Add `--output <private-report.json>` to save the merged report without copying private labels into the repository.
 
+Add saved qlogs to the same offline report with:
+
+`python3 tools/ascent_v8_evidence.py --labels <private-labels.jsonl> --qlog-root <saved-realdata-directory> --output <private-report.json> <calibration-journal.jsonl>`
+
 The extractor reports lead loss, physical braking, model/planner stop timing, and whether comma longitudinal control
 was active. Every candidate remains `unreviewed` until a confirmed road-camera label matches the route and stop time;
 pending or distant labels are not counted. It does not infer that a stop was caused by a sign or signal from braking
 telemetry alone. Confirmed lead, cross-traffic, and parking/turn maneuver stops are tracked separately so they cannot
 inflate traffic-control coverage. The report also groups model, planner, longitudinal-active, and brake-output responses
 by confirmed cause, providing a replay baseline for later builds.
+
+The qlog replay path is also non-actuating. It finds sustained curves above 0.003 1/m at speeds of at least 3 m/s,
+uses 0.002 1/m hysteresis and a one-second minimum duration, and records entry/minimum speed, current curvature,
+lateral acceleration, the existing 1.6 m/s2 standard curve-speed target, lane-line confidence, physical braking,
+driver steering override, controller saturation, and blinker presence. A blinker only marks a curve with a turn signal;
+it is not treated as proof of an intersection turn. Planner lead/deceleration timing is context, not traffic-control
+detection. Only model/planner stop intent before standstill counts as a stop response.
+
+The first saved route establishes a miss baseline, not a success claim. Across two confirmed stop signs and three
+confirmed red signals, neither model stop intent nor planner stop intent appeared before standstill, comma longitudinal
+was inactive, and comma emitted no brake output. The driver braked before all five, with a 3.546-second/21.652-meter
+median lead over the combined traffic-control set. Three approaches contained a tracked lead; the median final lead
+loss was 4.313 seconds before standstill. The separately confirmed stopped-lead case had planner lead/deceleration
+context, but planner `shouldStop` did not precede standstill and the driver supplied the stop.
+
+The 28 saved qlogs produced 34 curve candidates: 7 had a blinker present, 15 included driver braking, 26 included a
+driver steering override, 9 included controller saturation, and 5 exceeded the standard lateral-acceleration target
+at peak curvature. These are replay candidates, not video-confirmed turn labels. Thirty-two contained at least one
+sample where the conservative minimum of the two lane-line probabilities fell below 0.5, so any later curve-speed
+controller must reject weak geometry instead of treating the current event set as ready for actuation.
 
 The recorder keeps the newest eight journals within a 256 MiB cap, and the SSH bundle automatically includes them.
 
@@ -70,6 +94,13 @@ This direct-long route is the researched way to make a no-lead model stop. ACC c
 ## Independent detector research
 
 The independent Fable/Claude review recommended a high-resolution tiled lightweight detector, crop-based signal-state/relevance classifier, temporal tracker, calibrated stop-line range, and cached OpenStreetMap prior. Waze is not a traffic-control inventory or live signal-phase source; its developer feeds cover navigation links, incidents, closures, and partner vehicle data.
+
+An isolated COCO-pretrained YOLO26n qcamera baseline confirmed the expected object in two consecutive 2 Hz frames on
+all five first-route approaches, but only one of five confirmations occurred by 40 m and none of the two stop signs did.
+It classified neither signal phase nor ego relevance. This is useful as a crop/proposal baseline only; it fails the
+early-distance requirement and must not feed a stop target. The next offline iteration needs full-resolution tiled
+crops, temporal tracking, a separately validated red/yellow/green classifier, and local fine-tuning rather than a lower
+confidence threshold.
 
 Possible research datasets have important scope limits:
 

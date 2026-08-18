@@ -29,6 +29,8 @@ replay, controlled-course, and physical-device gated.
   driver intent hint, not an autonomous intersection-turn command.
 - Replay cut-in, lead-turn-away, stopped-lead, lead-resume, and red-light-behind-lead cases before controlled-course
   testing.
+- Use the saved-route timing baseline: the stopped-lead case had planner lead/deceleration context, but planner
+  `shouldStop` did not precede standstill, comma longitudinal was inactive, and the driver supplied the stop.
 
 ## P0 - stop signs and red lights
 
@@ -42,6 +44,12 @@ replay, controlled-course, and physical-device gated.
   immediate driver gas/brake override. No public-road actuation before replay and closed-course gates pass.
 - Keep separate labels for stop sign, signal phase, yield, lead-caused stop, cross-traffic, and driver-choice stop so
   braking telemetry cannot create false traffic-control ground truth.
+- Treat the first saved route as five confirmed traffic-control misses: zero model/planner stop responses before
+  standstill and zero comma brake outputs across two stop signs and three red signals. The driver's median intervention
+  lead was 3.546 seconds and 21.652 meters; these values are a comparison baseline for later replay builds.
+- Do not promote the generic COCO object baseline. It eventually confirmed all five expected objects, but only one by
+  40 meters, no stop signs by 40 meters, and no signal phase or ego relevance. Use it only to propose high-resolution
+  crops for the camera-first detector.
 
 ## P1 - curves and turns
 
@@ -51,6 +59,9 @@ replay, controlled-course, and physical-device gated.
   unstable rather than producing an abrupt late slowdown.
 - Navigation route intent may select the expected branch at an intersection, but it must not initiate a turn from a
   blinker or lead trajectory alone.
+- Review and label the 34 first-route curve candidates. Seven merely had a blinker present and are not turn ground
+  truth; nine included steering saturation, five exceeded the standard curve target at peak curvature, and 32 had at
+  least one low-confidence lane sample. Reject weak geometry before tuning speed targets.
 
 ## P1 - Florida offline map and GPS fusion
 
