@@ -1,9 +1,20 @@
 #!/usr/bin/env python3
+import os
 from pathlib import Path
 import sys
 
 
 REPO = Path(__file__).resolve().parents[1]
+DEVICE_VENV = Path("/usr/local/venv")
+DEVICE_PYTHON = DEVICE_VENV / "bin/python3"
+
+if DEVICE_PYTHON.is_file() and Path(sys.executable).resolve() != DEVICE_PYTHON.resolve():
+  env = os.environ.copy()
+  env["VIRTUAL_ENV"] = str(DEVICE_VENV)
+  env["PYTHONPATH"] = str(REPO)
+  env["PATH"] = f"{DEVICE_VENV / 'bin'}:{env.get('PATH', '')}"
+  os.execve(DEVICE_PYTHON, [str(DEVICE_PYTHON), str(Path(__file__).resolve()), *sys.argv[1:]], env)
+
 sys.path.insert(0, str(REPO))
 
 from openpilot.sunnypilot.system.ascent_maintenance.cli import main
