@@ -83,6 +83,9 @@ replay, controlled-course, and physical-device gated.
 - Extend the offline map output with nearby stop-sign nodes, traffic-signal nodes, intersection topology, road class,
   speed limit, and turn geometry. Map controls are priors only because inventories can be missing or stale and maps do
   not provide live signal color.
+- Preserve the route-4 OSM coverage baseline: all three labeled signals matched within 38.983 m, but neither labeled
+  stop sign matched; the nearest stop nodes were 490.730 m and 933.633 m away. Never treat map absence as evidence that
+  a camera stop candidate is false.
 - Fuse map topology with camera state, calibrated distance, route intent, and lead tracking. Camera disagreement or
   uncertain ego relevance must produce unknown, not a guessed stop/go decision.
 - A phone navigation route can help with intended lane/turn and upcoming-intersection relevance, but it cannot provide

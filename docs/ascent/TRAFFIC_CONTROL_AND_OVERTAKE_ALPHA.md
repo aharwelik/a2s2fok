@@ -129,6 +129,14 @@ yellow and two green, all visually consistent; the other 16 remained unknown. Th
 wide. This correctly avoids guessing but cannot provide usable phase coverage. Full-resolution segments 4, 5, 8, 9,
 11, 15, 16, 17, and 18 are the next bounded recovery set once the device reports offroad.
 
+A current OpenStreetMap snapshot was evaluated against 957 route GNSS fixes with at most 10 m reported accuracy.
+All three labeled red signals matched a `highway=traffic_signals` node within 19.699-38.983 m, but neither stop sign
+matched: the nearest `highway=stop` nodes were 490.730 m and 933.633 m away. Across the driven path, 26 signal nodes
+and zero stop nodes were within 30 m. OSM therefore helps anticipate signalized intersections on this route but cannot
+cover its stop signs or supply phase. [OSM signal](https://wiki.openstreetmap.org/wiki/Traffic_light) and
+[stop](https://wiki.openstreetmap.org/wiki/Tag%3Ahighway%3Dstop) nodes are position features; approach direction,
+lane ownership, stop line, and camera agreement remain required.
+
 Reproduce this offline-only report from the saved full-resolution segments with:
 
 `uv run --python 3.12 --with ultralytics python tools/ascent_v8_perception_replay.py --labels <private-labels.jsonl> --journal <calibration.jsonl> --realdata <saved-realdata> --model <pinned-model.pt> --output <private-report.json>`
@@ -136,6 +144,10 @@ Reproduce this offline-only report from the saved full-resolution segments with:
 Scan every saved qcamera segment for review candidates with:
 
 `uv run --python 3.12 --with ultralytics python tools/ascent_v8_route_scan.py --video-root <saved-realdata> --model <pinned-model.pt> --output <private-scan.json>`
+
+Evaluate a saved OSM node snapshot against route GNSS and confirmed labels with:
+
+`.venv/bin/python tools/ascent_v8_map_prior.py --qlog-root <saved-realdata> --labels <private-labels.jsonl> --osm <osm-controls.json> --output <private-map-report.json>`
 
 Possible research datasets have important scope limits:
 
