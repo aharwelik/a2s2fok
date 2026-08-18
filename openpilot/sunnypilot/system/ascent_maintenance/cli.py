@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING
 from openpilot.sunnypilot.system.ascent_maintenance.policy import (
   EXPECTED_BRANCH,
   EXPECTED_REMOTE,
+  LEGACY_REMOTE,
   RELEASE_PUBLIC_KEY,
   RELEASE_SIGNATURE_NAMESPACE,
   RELEASE_SIGNER_IDENTITY,
@@ -187,12 +188,19 @@ def verify_fetched_release(repo: Path, remote_head: str) -> tuple[dict, str]:
   return manifest, source_sha
 
 
+def ensure_expected_remote(repo: Path) -> None:
+  remote = git("remote", "get-url", "origin", cwd=repo)
+  if remote == LEGACY_REMOTE:
+    git("remote", "set-url", "origin", EXPECTED_REMOTE, cwd=repo)
+  elif remote != EXPECTED_REMOTE:
+    raise MaintenanceError("origin URL is not the approved public repository")
+
+
 def update(params: Params, repo: Path = REPO) -> dict:
   require_mutation_gate(params)
   if git("status", "--porcelain", cwd=repo):
     raise MaintenanceError("working tree is dirty")
-  if git("remote", "get-url", "origin", cwd=repo) != EXPECTED_REMOTE:
-    raise MaintenanceError("origin URL is not the approved public repository")
+  ensure_expected_remote(repo)
 
   previous = git("rev-parse", "HEAD", cwd=repo)
   git("fetch", "--recurse-submodules=no", "origin", EXPECTED_BRANCH, cwd=repo, timeout=300)

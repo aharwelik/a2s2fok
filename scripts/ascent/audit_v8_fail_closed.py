@@ -30,7 +30,7 @@ def main() -> None:
   subaru_values = (ROOT / "opendbc_repo/opendbc/car/subaru/values.py").read_text()
 
   require(violations, "https://github.com/aharwelik/sunnyopendbc.git" in gitmodules, "OpenDBC URL is not the public V8 fork")
-  require(violations, "branch = ascent-2023-v8-alpha-opendbc" in gitmodules, "OpenDBC branch is not locked to V8")
+  require(violations, "branch = v8" in gitmodules, "OpenDBC branch is not locked to V8")
   require(violations, "DIRECT_LONG_ALPHA_DEFAULT = False" in policy, "direct longitudinal default is not literal False")
   require(violations, "PANDA_LONG_RUNTIME_COMPILED = True" in policy, "Panda longitudinal runtime is not compiled")
   require(violations, "TRAFFIC_CONTROL_RUNTIME_COMPILED = True" in policy, "model-stop actuation runtime is not compiled")

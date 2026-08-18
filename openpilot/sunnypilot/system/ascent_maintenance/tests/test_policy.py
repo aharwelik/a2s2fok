@@ -1,3 +1,4 @@
+import subprocess
 import tarfile
 
 import pytest
@@ -5,6 +6,7 @@ import pytest
 from openpilot.sunnypilot.system.ascent_maintenance.cli import (
   MaintenanceError,
   collect_logs,
+  ensure_expected_remote,
   parse_ssh_command,
   status,
   validate_release_manifest,
@@ -13,6 +15,8 @@ from openpilot.sunnypilot.system.ascent_maintenance.policy import (
   AUTHORIZED_KEY,
   AUTHORIZED_KEYS,
   EXPECTED_BRANCH,
+  EXPECTED_REMOTE,
+  LEGACY_REMOTE,
   OPERATOR_PUBLIC_KEY,
   VehicleGateInputs,
   evaluate_mutation_gate,
@@ -71,6 +75,23 @@ def test_release_manifest_schema():
   manifest["branch"] = "unapproved"
   with pytest.raises(MaintenanceError):
     validate_release_manifest(manifest)
+
+
+def test_public_release_target_is_short_lowercase_repo_and_branch():
+  assert EXPECTED_REMOTE == "https://github.com/aharwelik/a2s2fok.git"
+  assert EXPECTED_BRANCH == "v8"
+  assert LEGACY_REMOTE == "https://github.com/aharwelik/sunnypilot.git"
+
+
+def test_existing_install_migrates_legacy_origin_once(tmp_path):
+  subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+  subprocess.run(["git", "-C", str(tmp_path), "remote", "add", "origin", LEGACY_REMOTE], check=True)
+
+  ensure_expected_remote(tmp_path)
+
+  remote = subprocess.run(["git", "-C", str(tmp_path), "remote", "get-url", "origin"], check=True,
+                          stdout=subprocess.PIPE, text=True).stdout.strip()
+  assert remote == EXPECTED_REMOTE
 
 
 class FakeParams:

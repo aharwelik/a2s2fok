@@ -1,8 +1,9 @@
 from dataclasses import dataclass
 
 
-EXPECTED_BRANCH = "ascent-2023-v8-alpha"
-EXPECTED_REMOTE = "https://github.com/aharwelik/sunnypilot.git"
+EXPECTED_BRANCH = "v8"
+EXPECTED_REMOTE = "https://github.com/aharwelik/a2s2fok.git"
+LEGACY_REMOTE = "https://github.com/aharwelik/sunnypilot.git"
 MAINTENANCE_IDENTITY = "ascent-v8-maintenance"
 MAINTENANCE_PUBLIC_KEY = (
   "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIINaJQJhtE03InOP4oafOSYI4ofquzpNLgZ3C512Ml0f " +

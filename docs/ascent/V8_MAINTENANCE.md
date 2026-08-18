@@ -20,7 +20,7 @@ python3 tools/ascent_v8_ssh.py <comma-ip> rollback
 
 `status` includes the active native/Chestnut model mode, latest V8 feature snapshot, and automatic calibration-recorder state. `logs` downloads the checksum-verified archive to `~/Downloads`, including the calibration journals; it does not include the full rlog, full-resolution video, credentials, or arbitrary files. Add `--prime` to use a comma device alias or dongle ID through `ssh.comma.ai` instead of a local IP address.
 
-Updates accept only `aharwelik/sunnypilot` branch `ascent-2023-v8-alpha`, a clean worktree, an Ed25519-signed release manifest, an exact OpenDBC gitlink, and the fail-closed audit. A timestamped local rollback ref is created before mutation. A failed audit restores the prior root and submodule state.
+Updates accept only `aharwelik/a2s2fok` branch `v8`, a clean worktree, an Ed25519-signed release manifest, an exact OpenDBC gitlink, and the fail-closed audit. Existing V8 installations automatically migrate the former `aharwelik/sunnypilot` origin once. A timestamped local rollback ref is created before mutation. A failed audit restores the prior root and submodule state.
 
 For a reconnecting full shell, use:
 
