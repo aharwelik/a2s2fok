@@ -13,6 +13,8 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"ApiCache_FirehoseStats", {PERSISTENT, JSON}},
     {"AssistNowToken", {PERSISTENT, STRING}},
     {"AscentV8ShadowStatus", {CLEAR_ON_MANAGER_START, JSON}},
+    {"AscentV8TrafficControlShadowEnabled", {PERSISTENT | DEVELOPMENT_ONLY | BACKUP, BOOL, "0"}},
+    {"AscentV8LaneChangeEvidenceEnabled", {PERSISTENT | DEVELOPMENT_ONLY | BACKUP, BOOL, "0"}},
     {"AthenadPid", {PERSISTENT, INT}},
     {"AthenadUploadQueue", {PERSISTENT, JSON}},
     {"AthenadRecentlyViewedRoutes", {PERSISTENT, STRING}},

@@ -82,6 +82,8 @@ class DeveloperLayoutMici(NavScroller):
     self._alpha_long_toggle = BigToggle("alpha longitudinal",
                                         initial_state=ui_state.params.get_bool("AlphaLongitudinalEnabled"),
                                         toggle_callback=self._on_alpha_long_enabled)
+    self._ascent_stop_evidence_toggle = BigParamControl("Ascent V8 model-stop evidence", "AscentV8TrafficControlShadowEnabled")
+    self._ascent_pass_adviser_toggle = BigParamControl("Ascent V8 lane-change evidence", "AscentV8LaneChangeEvidenceEnabled")
     self._debug_mode_toggle = BigParamControl("ui debug mode", "ShowDebugInfo",
                                               toggle_callback=lambda checked: (gui_app.set_show_touches(checked),
                                                                                gui_app.set_show_fps(checked)))
@@ -94,6 +96,8 @@ class DeveloperLayoutMici(NavScroller):
       self._long_maneuver_toggle,
       self._lat_maneuver_toggle,
       self._alpha_long_toggle,
+      self._ascent_stop_evidence_toggle,
+      self._ascent_pass_adviser_toggle,
       self._debug_mode_toggle,
     ])
 
@@ -105,11 +109,15 @@ class DeveloperLayoutMici(NavScroller):
       ("LongitudinalManeuverMode", self._long_maneuver_toggle),
       ("LateralManeuverMode", self._lat_maneuver_toggle),
       ("AlphaLongitudinalEnabled", self._alpha_long_toggle),
+      ("AscentV8TrafficControlShadowEnabled", self._ascent_stop_evidence_toggle),
+      ("AscentV8LaneChangeEvidenceEnabled", self._ascent_pass_adviser_toggle),
       ("ShowDebugInfo", self._debug_mode_toggle),
     )
     onroad_blocked_toggles = (self._adb_toggle, self._joystick_toggle)
-    release_blocked_toggles = (self._joystick_toggle, self._long_maneuver_toggle, self._lat_maneuver_toggle, self._alpha_long_toggle)
-    engaged_blocked_toggles = (self._long_maneuver_toggle, self._lat_maneuver_toggle, self._alpha_long_toggle)
+    release_blocked_toggles = (self._joystick_toggle, self._long_maneuver_toggle, self._lat_maneuver_toggle, self._alpha_long_toggle,
+                               self._ascent_stop_evidence_toggle, self._ascent_pass_adviser_toggle)
+    engaged_blocked_toggles = (self._long_maneuver_toggle, self._lat_maneuver_toggle, self._alpha_long_toggle,
+                               self._ascent_stop_evidence_toggle, self._ascent_pass_adviser_toggle)
 
     # Hide non-release toggles on release builds
     for item in release_blocked_toggles:
@@ -143,6 +151,9 @@ class DeveloperLayoutMici(NavScroller):
 
     # CP gating
     if ui_state.CP is not None:
+      exact_ascent_v8 = ui_state.CP.carFingerprint == "SUBARU_ASCENT_2023" and not ui_state.is_release
+      self._ascent_stop_evidence_toggle.set_visible(exact_ascent_v8)
+      self._ascent_pass_adviser_toggle.set_visible(exact_ascent_v8)
       alpha_avail = ui_state.CP.alphaLongitudinalAvailable
       if not alpha_avail or ui_state.is_release:
         self._alpha_long_toggle.set_visible(False)
@@ -157,6 +168,8 @@ class DeveloperLayoutMici(NavScroller):
       self._long_maneuver_toggle.set_enabled(False)
       self._lat_maneuver_toggle.set_enabled(False)
       self._alpha_long_toggle.set_visible(False)
+      self._ascent_stop_evidence_toggle.set_visible(False)
+      self._ascent_pass_adviser_toggle.set_visible(False)
 
     # Refresh toggles from params to mirror external changes
     for key, item in self._refresh_toggles:

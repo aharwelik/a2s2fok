@@ -17,11 +17,13 @@ Driver Monitoring is intentionally omitted from this user-facing feature board. 
 - Lane-positioning research surface using current lane geometry and confidence.
 - Whole-trajectory supervisor using model timestamps, acceleration, jerk, and derived curvature.
 - Final-command shadow guard using the model's current action candidate.
-- Stop-sign perception training path.
+- Development-only, default-off model-stop evidence using `shouldStop`, stopping-path corroboration, live lead vetoes, source age, and trajectory validity. It does not classify the cause as a sign or light.
+- Development-only, default-off driver-confirmed left lane-change evidence using a slower lead, adjacent-lane geometry, road edge, blind spot, source age, and lane confidence. It never operates a blinker, selects a lane, or labels the adjacent lane as a legal/same-direction passing lane.
+- Stop-sign/light perception training and qualification path.
 - Local speed-limit evidence.
 - Chestnut/eGPU runtime with a preloaded native-model fallback for loading, USB, inference, or nonfinite-output failure.
 
-The comma settings screen and restricted SSH `status` command show the current model mode, source freshness, trajectory verdict, curve target, lane trim, and per-drive evaluation/error totals.
+The Developer settings screen exposes the two evidence toggles only on the 2023 Ascent development build. The Ascent status screen and restricted SSH `status` command show their state, current model mode, source freshness, trajectory verdict, curve target, lane trim, and per-drive totals.
 
 ## Runtime connectors that remain off
 

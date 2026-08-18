@@ -64,6 +64,8 @@ class TrajectorySupervisor:
           reasons.append("time_order")
         elif abs((point.a - previous.a) / dt) > self.limits.max_abs_jerk:
           reasons.append("jerk_limit")
+        if point.x < previous.x:
+          reasons.append("x_order")
       previous = point
 
     unique_reasons = tuple(dict.fromkeys(reasons))

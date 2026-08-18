@@ -11,12 +11,18 @@ REQUIRED_FALSE = {
   "DIRECT_LONG_ALPHA_DEFAULT",
   "PANDA_LONG_RUNTIME_COMPILED",
   "TRAFFIC_CONTROL_RUNTIME_COMPILED",
+  "TRAFFIC_CONTROL_EVIDENCE_DEFAULT",
   "AUTOMATIC_PASS_RUNTIME_COMPILED",
+  "LANE_CHANGE_EVIDENCE_DEFAULT",
   "AUTOMATIC_BLINKER_RUNTIME_COMPILED",
   "AUTOMATIC_LANE_SELECTION_RUNTIME_COMPILED",
   "LIVE_LANE_POSITION_TRIM_ACTIVE",
   "LIVE_ADAPTIVE_CURVE_CONTROL",
   "BIG_MODEL_LAB_DEFAULT",
+}
+REQUIRED_TRUE = {
+  "TRAFFIC_CONTROL_EVIDENCE_RUNTIME_COMPILED",
+  "LANE_CHANGE_EVIDENCE_RUNTIME_COMPILED",
 }
 
 
@@ -40,6 +46,9 @@ def main() -> None:
   for name in REQUIRED_FALSE:
     if values.get(name) is not False:
       violations.append(f"{name} must be False")
+  for name in REQUIRED_TRUE:
+    if values.get(name) is not True:
+      violations.append(f"{name} must be True")
 
   print(json.dumps({"passed": not violations, "violations": violations}, indent=2))
   raise SystemExit(1 if violations else 0)

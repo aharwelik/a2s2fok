@@ -22,6 +22,8 @@ def main() -> None:
   maintenance_client = (ROOT / "tools/ascent_v8_ssh.py").read_text()
   mads = (ROOT / "openpilot/sunnypilot/mads/mads.py").read_text()
   process_config = (ROOT / "openpilot/system/manager/process_config.py").read_text()
+  params_keys = (ROOT / "openpilot/common/params_keys.h").read_text()
+  shadowd = (ROOT / "openpilot/sunnypilot/selfdrive/ascent_v8/shadowd.py").read_text()
   subaru_safety = (ROOT / "opendbc_repo/opendbc/safety/modes/subaru.h").read_text()
   subaru_values = (ROOT / "opendbc_repo/opendbc/car/subaru/values.py").read_text()
 
@@ -30,6 +32,13 @@ def main() -> None:
   require(violations, "DIRECT_LONG_ALPHA_DEFAULT = False" in policy, "direct longitudinal default is not literal False")
   require(violations, "PANDA_LONG_RUNTIME_COMPILED = False" in policy, "Panda longitudinal runtime is not literal False")
   require(violations, "TRAFFIC_CONTROL_RUNTIME_COMPILED = False" in policy, "traffic-control runtime is not literal False")
+  require(violations, "TRAFFIC_CONTROL_EVIDENCE_DEFAULT = False" in policy, "traffic-control evidence is not default-off")
+  require(violations, "LANE_CHANGE_EVIDENCE_DEFAULT = False" in policy, "lane-change evidence is not default-off")
+  require(violations, all(f'{{"{name}", {{PERSISTENT | DEVELOPMENT_ONLY | BACKUP, BOOL, "0"}}}}' in params_keys for name in (
+    "AscentV8TrafficControlShadowEnabled", "AscentV8LaneChangeEvidenceEnabled")),
+          "V8 feature toggles are not development-only and default-off")
+  require(violations, "CAR.SUBARU_ASCENT_2023" in shadowd and "_is_exact_ascent_2023" in shadowd,
+          "V8 evidence runtime is not exact-vehicle gated")
   require(violations, "subaru_longitudinal" not in subaru_safety, "production Subaru longitudinal state was restored")
   require(violations, "SUBARU_LONG_TX_MSGS" not in subaru_safety, "production Subaru longitudinal TX list was restored")
   require(violations, "MSG_SUBARU_ES_LKAS_ANGLE" in subaru_safety, "LKAS angle safety is missing")
