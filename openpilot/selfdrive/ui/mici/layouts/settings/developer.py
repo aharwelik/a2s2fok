@@ -83,7 +83,7 @@ class DeveloperLayoutMici(NavScroller):
                                         initial_state=ui_state.params.get_bool("AlphaLongitudinalEnabled"),
                                         toggle_callback=self._on_alpha_long_enabled)
     self._ascent_stop_evidence_toggle = BigParamControl("Ascent V8 model-stop evidence", "AscentV8TrafficControlShadowEnabled")
-    self._ascent_pass_adviser_toggle = BigParamControl("Ascent V8 lane-change evidence", "AscentV8LaneChangeEvidenceEnabled")
+    self._ascent_pass_adviser_toggle = BigParamControl("Ascent V8 obstacle-bypass evidence", "AscentV8LaneChangeEvidenceEnabled")
     self._debug_mode_toggle = BigParamControl("ui debug mode", "ShowDebugInfo",
                                               toggle_callback=lambda checked: (gui_app.set_show_touches(checked),
                                                                                gui_app.set_show_fps(checked)))

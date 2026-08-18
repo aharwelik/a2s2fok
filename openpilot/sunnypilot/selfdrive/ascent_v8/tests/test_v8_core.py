@@ -13,7 +13,11 @@ from openpilot.sunnypilot.selfdrive.ascent_v8.unknown_space import RegionEvidenc
 
 
 def test_release_boundary():
-  assert V8ReleaseBoundary().fail_closed
+  boundary = V8ReleaseBoundary()
+  assert boundary.direct_long is False
+  assert boundary.panda_long is True
+  assert boundary.traffic_control is True
+  assert not boundary.fail_closed
 
 
 def test_lab_gate():

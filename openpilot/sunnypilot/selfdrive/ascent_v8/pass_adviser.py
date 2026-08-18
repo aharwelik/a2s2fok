@@ -29,7 +29,7 @@ class PassAdvice:
 
 
 class PassAdviser:
-  """Left-side lane geometry evidence; never permission to pass or change lanes."""
+  """Evidence for a driver-commanded controlled-lot obstacle bypass."""
 
   MIN_SPEED_MPS = 8.9
   MIN_SPEED_DELTA_MPS = 1.5

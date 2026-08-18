@@ -1,4 +1,4 @@
-DEVELOPMENT_LABEL = "ALPHA / LIVE EVIDENCE / STOCK EYESIGHT LONG"
+DEVELOPMENT_LABEL = "ALPHA / MODEL STOP / CONTROLLED-LOT BYPASS"
 
 
 def _live_status_lines(shadow_status: dict | None) -> tuple[str, ...]:
@@ -20,7 +20,7 @@ def _live_status_lines(shadow_status: dict | None) -> tuple[str, ...]:
     f"Live model: {model_mode}; sources {'fresh' if last.get('source_fresh') else 'stale'}.",
     f"Trajectory: {last.get('trajectory', 'unknown')}; space: {last.get('space', 'unknown')}.",
     f"Curve target: {curve_text}; lane candidate trim: {lane_text}.",
-    f"Model stop prediction: {model_stop}; left lane-change evidence: {lane_change_state}.",
+    f"Model stop prediction: {model_stop}; left obstacle-bypass evidence: {lane_change_state}.",
     f"This drive: {int(shadow_status.get('evaluations', 0))} evaluations; {int(shadow_status.get('errors', 0))} errors.",
   )
 
@@ -35,10 +35,12 @@ def status_summary(shadow_status: dict | None = None) -> str:
   return "\n".join((
     "2023 Subaru Ascent V8 Alpha",
     "Bus 0 angle steering; V6 planner and MADS guards preserved.",
-    "Stock EyeSight retains acceleration, braking, AEB, and FCW.",
+    "Alpha longitudinal is available for the exact 2023 Ascent and defaults OFF.",
+    "With Alpha Longitudinal plus Experimental Mode enabled, model shouldStop and desired acceleration can command a progressive stop.",
+    "SET/RESUME/CANCEL are read through EyeSight DID 0x1130; longitudinal frames use Gen2 bus 1.",
     "V8 trajectory, curve, lane-position, and command guards are live telemetry.",
-    "Model-stop and lane-change evidence are development toggles and default OFF.",
-    "Driver-confirmed lane changes remain available; automatic pass/blinkers and direct longitudinal remain OFF.",
+    "Model-stop and controlled-lot obstacle-bypass evidence are development toggles and default OFF.",
+    "Driver-commanded bypass uses the normal blinker plus Sunnypilot lane change after left-corridor evidence becomes ready.",
     "Model-stop evidence does not claim whether the cause is a red light, stop sign, or another road condition.",
     "Maintenance SSH is key-only and restricted to status, parked updates, and parked log bundles.",
     *_live_status_lines(shadow_status),

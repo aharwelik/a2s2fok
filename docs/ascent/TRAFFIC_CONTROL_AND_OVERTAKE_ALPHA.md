@@ -1,40 +1,39 @@
-# Ascent V8 traffic-control and overtake alpha
+# Ascent V8 model-stop and controlled-lot obstacle-bypass alpha
 
 Research snapshot: 2026-08-17. Target: 2023 Subaru Ascent, comma four, V8 development branch.
 
 ## What is executable now
 
 - `modelV2.action.shouldStop` and `desiredAcceleration` already feed openpilot's Experimental Mode longitudinal planner. The off-by-default **Ascent V8 model-stop evidence** developer toggle separately debounces that intent as `model_stop_prediction`, requires stopping corroboration, vetoes a nearby lead, a committed curve, stale inputs, and invalid trajectories, and records the result in `AscentV8ShadowStatus`.
-- The off-by-default **Ascent V8 lane-change evidence** developer toggle records a slower lead, positive adjacent-lane geometry, lane confidence, road-edge/unknown-space classification, and BSM state. It becomes a `driver_left_lane_change_candidate` only after the driver confirms with the left blinker. It never operates a blinker or lane selection. The camera lane model does not identify same-direction versus opposing lanes or legal passing zones, so the output is deliberately not called pass-ready or permission to overtake.
-- These features are evidence and replay surfaces. The 2023 Ascent still uses stock EyeSight for gas and brake, so model-stop evidence cannot command a stop in this version.
+- The off-by-default **Ascent V8 obstacle-bypass evidence** developer toggle records a slower obstacle/lead, positive adjacent corridor geometry, lane confidence, road-edge/unknown-space classification, and BSM state. It becomes a `driver_left_lane_change_candidate` after the left blinker confirms the controlled-lot maneuver. Sunnypilot's existing lane-change planner then performs the lateral move.
+- The exact-Ascent alpha longitudinal connector now makes the existing Experimental Mode model-stop path testable end to end. It disables EyeSight communication, reads SET/RESUME/CANCEL from DID `0x1130`, routes `0x220/0x221/0x222` on Gen2 bus 1, and ramps deceleration progressively at 1.0 m/s3.
 
 Both processes are ignored unless `CarParams.carFingerprint` is exactly `SUBARU_ASCENT_2023`; both toggles default false and are hidden on release builds.
 
 Do not label `model_stop_prediction` as a red light or stop sign. The driving model predicts stopping behavior but does not publish a classified traffic-control object or signal phase.
 
-## Why the actuator connector is not enabled yet
+## How to exercise the alpha connector
 
-The 2023 Ascent is both Subaru Gen2 and angle-steering. The Subaru longitudinal implementation removed by [opendbc PR 3689](https://github.com/commaai/opendbc/pull/3689) did not make longitudinal available for either category. The PR specifically requires a characterized actuation API, speed-dependent limits inside the generic -3.5 to +2.0 m/s2 envelope, and a longitudinal maneuver report before re-enable.
+1. Enable **Alpha longitudinal** and **Experimental Mode**, then reboot the device with ignition on before engine start so early EyeSight communication control can complete.
+2. Press and release SET or RESUME to engage the non-PCM cruise path. The main/cancel button disengages it.
+3. Present a controlled-lot stop-sign/light scenario. The normal model `shouldStop` and `desiredAcceleration` signals feed the longitudinal planner and the Subaru controller's gradual command ramp.
+4. For the obstacle bypass, enable **Ascent V8 obstacle-bypass evidence**, wait for left-corridor readiness, then use the left blinker. Use the right blinker after the obstacle for the normal return lane change.
 
-There are additional vehicle-specific gaps:
+Implemented vehicle-specific pieces:
 
-- Gen2 receives `ES_Brake`, `ES_Distance`, and `ES_Status` on bus 1, but the dormant controller emits brake/status on bus 0. The old Panda allowlist expected bus 1.
-- Disabling EyeSight removes camera-derived engagement/button inputs. The old Gen2 proof-of-concept polled DID `0x1130`, but did not finish parsing or assigning that response.
-- Current angle safety RX checks require live camera messages that disappear when EyeSight communication is disabled.
-- Reusing stock EyeSight while forging `ES_Distance` risks counter collisions; the current controller already documents that this can fault EyeSight and EPS.
+- `ES_Brake`, `ES_Distance`, and `ES_Status` transmit on bus 1 for Gen2; angle steering remains `0x124` on bus 0.
+- DID `0x1130` responses are parsed into physical SET/RESUME/CANCEL events in both CarState and Panda.
+- The combined `GEN2 | LKAS_ANGLE | LONG` Panda mode uses a direct-long RX set that does not require silent EyeSight output frames.
+- A cached exact-Ascent fingerprint triggers the proven early communication-control sequence before fingerprinting, followed by tester-present keepalive.
+- The actuator command changes at no more than 1.0 m/s3 toward braking and 1.5 m/s3 toward acceleration.
 
 A fake software lead is not a substitute. Stock EyeSight does not consume openpilot's `radarState`, and `Close_Distance` is an EyeSight output/display field, not a demonstrated controller input.
 
-## Most plausible direct-long sequence
+## Current proof status
 
-1. Capture `0x220`, `0x221`, and `0x222` on every bus during stock SET/RESUME, following stop, hold, restart, gas override, and brake-at-standstill. Repeat with EyeSight communication disabled and capture DID `0x1130` responses.
-2. Fit speed-binned throttle, RPM, and brake envelopes from the exact Ascent logs. Keep every mapped command inside -3.5 to +2.0 m/s2.
-3. Enable alpha long only for `SUBARU_ASCENT_2023`, only on development builds, and only through the existing off-by-default `AlphaLongitudinalEnabled` toggle.
-4. Route angle `0x124` on bus 0, longitudinal `0x220/221/222` on bus 1, and the narrow tester-present/button UDS allowlist on bus 2.
-5. Add a `GEN2 | LKAS_ANGLE | LONG` Panda test class with speed-bin boundary rejection, driver gas/brake override, inactive-output behavior, UDS allowlist coverage, and byte-for-byte unchanged angle output.
-6. Prove model action -> Experimental planner -> `CC.longActive` -> CAN command -> measured vehicle deceleration, standstill hold, and resume.
+The exact vehicle gate, toggle behavior, DID button parser, combined Panda mode, CAN buses, command bounds, cancel behavior, and progressive brake ramp have automated coverage. The remaining proof is on the physical Ascent: record model action -> Experimental planner -> `CC.longActive` -> bus-1 command -> measured deceleration, standstill hold, and resume. Those logs will also replace the inherited raw throttle/RPM/brake interpolation with Ascent-specific speed-binned points if the measurements differ.
 
-This is the only researched route with a credible chance of making a no-lead traffic-control stop. ACC cancel can only coast. Cruise-button overlays can lower stock set speed but cannot demonstrate a controlled stop below the OEM minimum.
+This direct-long route is the researched way to make a no-lead model stop. ACC cancel only coasts, and cruise-button speed reduction cannot reach a controlled zero-speed stop below the OEM set-speed floor.
 
 ## Independent detector research
 

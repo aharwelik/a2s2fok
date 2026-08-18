@@ -87,6 +87,28 @@ class Car:
 
     self.can_callbacks = can_comm_callbacks(self.can_sock, self.pm.sock['sendcan'])
 
+    # The Gen2 LKAS-angle EyeSight variant accepts communication control most
+    # reliably before engine start. Use the cached exact-Ascent fingerprint so
+    # the alpha connector can take ownership before fingerprinting completes.
+    if self.params.get_bool("AlphaLongitudinalEnabled"):
+      cached_raw = self.params.get("CarParamsCache")
+      if cached_raw is not None:
+        try:
+          with car.CarParams.from_bytes(cached_raw) as cached_cp:
+            from opendbc.car.subaru.values import CAR, GLOBAL_ES_ADDR, SubaruFlags
+            exact_ascent = cached_cp.carFingerprint == str(CAR.SUBARU_ASCENT_2023)
+            gen2_angle = bool(cached_cp.flags & SubaruFlags.GLOBAL_GEN2) and bool(cached_cp.flags & SubaruFlags.LKAS_ANGLE)
+            if exact_ascent and gen2_angle:
+              from opendbc.car import uds
+              from opendbc.car.disable_ecu import disable_ecu
+              communication_control = bytes([uds.SERVICE_TYPE.COMMUNICATION_CONTROL,
+                                             uds.CONTROL_TYPE.DISABLE_RX_DISABLE_TX,
+                                             uds.MESSAGE_TYPE.NORMAL])
+              disable_ecu(*self.can_callbacks, bus=2, addr=GLOBAL_ES_ADDR, com_cont_req=communication_control)
+              cloudlog.info("Ascent V8 early EyeSight communication control complete")
+        except Exception:
+          cloudlog.exception("Ascent V8 early EyeSight communication control failed")
+
     is_release = False  # self.params.get_bool("IsReleaseBranch")
     is_release_sp = self.params.get_bool("IsReleaseSpBranch")
 

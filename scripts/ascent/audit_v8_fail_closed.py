@@ -25,13 +25,15 @@ def main() -> None:
   params_keys = (ROOT / "openpilot/common/params_keys.h").read_text()
   shadowd = (ROOT / "openpilot/sunnypilot/selfdrive/ascent_v8/shadowd.py").read_text()
   subaru_safety = (ROOT / "opendbc_repo/opendbc/safety/modes/subaru.h").read_text()
+  subaru_interface = (ROOT / "opendbc_repo/opendbc/car/subaru/interface.py").read_text()
+  subaru_controller = (ROOT / "opendbc_repo/opendbc/car/subaru/carcontroller.py").read_text()
   subaru_values = (ROOT / "opendbc_repo/opendbc/car/subaru/values.py").read_text()
 
   require(violations, "https://github.com/aharwelik/sunnyopendbc.git" in gitmodules, "OpenDBC URL is not the public V8 fork")
   require(violations, "branch = ascent-2023-v8-alpha-opendbc" in gitmodules, "OpenDBC branch is not locked to V8")
   require(violations, "DIRECT_LONG_ALPHA_DEFAULT = False" in policy, "direct longitudinal default is not literal False")
-  require(violations, "PANDA_LONG_RUNTIME_COMPILED = False" in policy, "Panda longitudinal runtime is not literal False")
-  require(violations, "TRAFFIC_CONTROL_RUNTIME_COMPILED = False" in policy, "traffic-control runtime is not literal False")
+  require(violations, "PANDA_LONG_RUNTIME_COMPILED = True" in policy, "Panda longitudinal runtime is not compiled")
+  require(violations, "TRAFFIC_CONTROL_RUNTIME_COMPILED = True" in policy, "model-stop actuation runtime is not compiled")
   require(violations, "TRAFFIC_CONTROL_EVIDENCE_DEFAULT = False" in policy, "traffic-control evidence is not default-off")
   require(violations, "LANE_CHANGE_EVIDENCE_DEFAULT = False" in policy, "lane-change evidence is not default-off")
   require(violations, all(f'{{"{name}", {{PERSISTENT | DEVELOPMENT_ONLY | BACKUP, BOOL, "0"}}}}' in params_keys for name in (
@@ -39,8 +41,14 @@ def main() -> None:
           "V8 feature toggles are not development-only and default-off")
   require(violations, "CAR.SUBARU_ASCENT_2023" in shadowd and "_is_exact_ascent_2023" in shadowd,
           "V8 evidence runtime is not exact-vehicle gated")
-  require(violations, "subaru_longitudinal" not in subaru_safety, "production Subaru longitudinal state was restored")
-  require(violations, "SUBARU_LONG_TX_MSGS" not in subaru_safety, "production Subaru longitudinal TX list was restored")
+  require(violations, "candidate == CAR.SUBARU_ASCENT_2023" in subaru_interface,
+          "alpha longitudinal is not exact-Ascent gated")
+  require(violations, "SUBARU_LKAS_ANGLE_GEN2_LONG_TX_MSGS" in subaru_safety,
+          "combined Gen2 angle longitudinal TX list is missing")
+  require(violations, "MSG_SUBARU_ES_UDS_Response" in subaru_safety and "0x30112203U" in subaru_safety,
+          "DID 0x1130 button path is missing")
+  require(violations, "long_bus = CanBus.alt" in subaru_controller,
+          "Gen2 longitudinal bus-1 routing is missing")
   require(violations, "MSG_SUBARU_ES_LKAS_ANGLE" in subaru_safety, "LKAS angle safety is missing")
   require(violations, "SUBARU_BASE_TX_MSGS(SUBARU_MAIN_BUS, MSG_SUBARU_ES_LKAS_ANGLE)" in subaru_safety,
           "bus-0 LKAS angle TX lock is missing")
@@ -66,7 +74,7 @@ def main() -> None:
     "passed": not violations,
     "violations": violations,
     "bus0_angle_steering": "SUBARU_BASE_TX_MSGS(SUBARU_MAIN_BUS, MSG_SUBARU_ES_LKAS_ANGLE)" in subaru_safety,
-    "stock_eyesight_longitudinal": "subaru_longitudinal" not in subaru_safety,
+    "exact_ascent_alpha_longitudinal": "candidate == CAR.SUBARU_ASCENT_2023" in subaru_interface,
     "restricted_key_only_ssh": "restrict,command=" in maintenance,
     "maintenance_client_password_login_disabled": "PasswordAuthentication=no" in maintenance_client,
     "arbitrary_onroad_shell": False,
