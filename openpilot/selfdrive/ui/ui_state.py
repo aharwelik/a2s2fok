@@ -15,6 +15,7 @@ from openpilot.common.hardware import HARDWARE, PC
 from openpilot.selfdrive.modeld.helpers import usbgpu_compiled
 
 from openpilot.selfdrive.ui.sunnypilot.ui_state import UIStateSP, DeviceSP
+from openpilot.sunnypilot.selfdrive.ascent_v8.test_alert_mode import is_test_alert_mode_enabled
 
 BACKLIGHT_OFFROAD = 65 if HARDWARE.get_device_type() == "mici" else 50
 PARAM_UPDATE_TIME = 1 / 5.0
@@ -80,6 +81,7 @@ class UIState(UIStateSP):
     self.is_metric: bool = self.params.get_bool("IsMetric")
     self.is_release = False  # self.params.get_bool("IsReleaseBranch")
     self.always_on_dm: bool = self.params.get_bool("AlwaysOnDM")
+    self.ascent_v8_test_alert_mode: bool = False
     self.experimental_mode: bool = self.params.get_bool("ExperimentalMode")
     self.experimental_mode_confirmed: bool = self.params.get_bool("ExperimentalModeConfirmed")
     self.usbgpu: bool = False
@@ -214,6 +216,8 @@ class UIState(UIStateSP):
     self.recording_audio = self.params.get_bool("RecordAudio") and self.started
     self.is_metric = self.params.get_bool("IsMetric")
     self.always_on_dm = self.params.get_bool("AlwaysOnDM")
+    fingerprint = str(self.CP.carFingerprint) if self.CP is not None else None
+    self.ascent_v8_test_alert_mode = is_test_alert_mode_enabled(self.params, fingerprint)
     self.experimental_mode = self.params.get_bool("ExperimentalMode")
     self.experimental_mode_confirmed = self.params.get_bool("ExperimentalModeConfirmed")
     # keep usbgpu UI active until offroad transition when gpu disappears

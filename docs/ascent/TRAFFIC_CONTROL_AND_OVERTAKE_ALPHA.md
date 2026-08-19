@@ -19,6 +19,13 @@ Do not label `model_stop_prediction` as a red light or stop sign. The driving mo
 3. Present a controlled-lot stop-sign/light scenario. The normal model `shouldStop` and `desiredAcceleration` signals feed the longitudinal planner and the Subaru controller's gradual command ramp.
 4. For the obstacle bypass, enable **Ascent V8 obstacle-bypass evidence**, wait for left-corridor readiness, then use the left blinker. Use the right blinker after the obstacle for the normal return lane change.
 
+For an attended controlled-course test only, the development panel also exposes **Ascent V8 quiet test mode (99
+min)**. It is default-off, exact-fingerprint gated, disabled while engaged, and requests a runtime restart when changed.
+The mode keeps both monitoring daemons and their face/pose/blink telemetry alive, moves both attention policies to
+5,940/6,000/6,060 seconds, neutralizes alert/lockout/forced-deceleration output as a backstop, hides the DMoji, and
+suppresses only DMS and steering-saturation nuisance events. Turn it off and restart after the controlled test; normal
+behavior is byte-for-byte unchanged when the parameter is false.
+
 ## Automatic first-drive data
 
 No recording toggle is required. On every exact 2023 Ascent drive, V8 writes a 10 Hz calibration journal under

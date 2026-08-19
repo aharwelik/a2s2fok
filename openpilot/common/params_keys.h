@@ -14,6 +14,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"AssistNowToken", {PERSISTENT, STRING}},
     {"AscentV8CalibrationStatus", {CLEAR_ON_MANAGER_START, JSON}},
     {"AscentV8ShadowStatus", {CLEAR_ON_MANAGER_START, JSON}},
+    {"AscentV8TestAlertDelayEnabled", {PERSISTENT | DEVELOPMENT_ONLY | BACKUP, BOOL, "0"}},
     {"AscentV8TrafficControlShadowEnabled", {PERSISTENT | DEVELOPMENT_ONLY | BACKUP, BOOL, "0"}},
     {"AscentV8LaneChangeEvidenceEnabled", {PERSISTENT | DEVELOPMENT_ONLY | BACKUP, BOOL, "0"}},
     {"AthenadPid", {PERSISTENT, INT}},

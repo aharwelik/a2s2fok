@@ -33,6 +33,7 @@ from openpilot.sunnypilot.selfdrive.car.cruise_helpers import CruiseHelper
 from openpilot.sunnypilot.selfdrive.car.intelligent_cruise_button_management.controller import IntelligentCruiseButtonManagement
 from openpilot.sunnypilot.selfdrive.selfdrived.button_state_tracker import ButtonStateTracker
 from openpilot.sunnypilot.selfdrive.selfdrived.events import EventsSP
+from openpilot.sunnypilot.selfdrive.ascent_v8.test_alert_mode import is_test_alert_mode_enabled
 
 REPLAY = "REPLAY" in os.environ
 SIMULATION = "SIMULATION" in os.environ
@@ -117,6 +118,7 @@ class SelfdriveD(CruiseHelper):
     self.is_metric = self.params.get_bool("IsMetric")
     self.is_ldw_enabled = self.params.get_bool("IsLdwEnabled")
     self.disengage_on_accelerator = self.params.get_bool("DisengageOnAccelerator")
+    self.ascent_v8_test_alert_mode = is_test_alert_mode_enabled(self.params, str(self.CP.carFingerprint))
 
     car_recognized = self.CP.brand != 'mock'
 
@@ -248,28 +250,29 @@ class SelfdriveD(CruiseHelper):
 
     # Handle DM
     if not self.CP.notCar:
-      # Block engaging until lockout times out or ignition reset
-      if self.sm['driverMonitoringState'].lockout and not self.dm_lockout_set:
-        self.params.put_bool("DriverTooDistracted", True)
-        self.dm_lockout_set = True
-      elif not self.sm['driverMonitoringState'].lockout and self.dm_lockout_set:
-        self.params.remove("DriverTooDistracted")
-        self.dm_lockout_set = False
-      # No entry conditions
-      if self.sm['driverMonitoringState'].lockout or self.sm['driverMonitoringState'].alwaysOnLockout:
-        self.events.add(EventName.tooDistracted)
-      # Alerts
-      vision_dm = self.sm['driverMonitoringState'].activePolicy == MonitoringPolicy.vision
-      if self.sm['driverMonitoringState'].alertLevel == AlertLevel.one:
-        self.events.add(EventName.driverDistracted1 if vision_dm else EventName.driverUnresponsive1)
-      elif self.sm['driverMonitoringState'].alertLevel == AlertLevel.two:
-        self.events.add(EventName.driverDistracted2 if vision_dm else EventName.driverUnresponsive2)
-      elif self.sm['driverMonitoringState'].alertLevel == AlertLevel.three:
-        self.events.add(EventName.driverDistracted3 if vision_dm else EventName.driverUnresponsive3)
-      # Warn consistent DM uncertainty
-      if self.sm['driverMonitoringState'].visionPolicyState.uncertainOffroadAlertPercent >= 100 and not self.dm_uncertain_alerted:
-        set_offroad_alert("Offroad_DriverMonitoringUncertain", True)
-        self.dm_uncertain_alerted = True
+      if not self.ascent_v8_test_alert_mode:
+        # Block engaging until lockout times out or ignition reset
+        if self.sm['driverMonitoringState'].lockout and not self.dm_lockout_set:
+          self.params.put_bool("DriverTooDistracted", True)
+          self.dm_lockout_set = True
+        elif not self.sm['driverMonitoringState'].lockout and self.dm_lockout_set:
+          self.params.remove("DriverTooDistracted")
+          self.dm_lockout_set = False
+        # No entry conditions
+        if self.sm['driverMonitoringState'].lockout or self.sm['driverMonitoringState'].alwaysOnLockout:
+          self.events.add(EventName.tooDistracted)
+        # Alerts
+        vision_dm = self.sm['driverMonitoringState'].activePolicy == MonitoringPolicy.vision
+        if self.sm['driverMonitoringState'].alertLevel == AlertLevel.one:
+          self.events.add(EventName.driverDistracted1 if vision_dm else EventName.driverUnresponsive1)
+        elif self.sm['driverMonitoringState'].alertLevel == AlertLevel.two:
+          self.events.add(EventName.driverDistracted2 if vision_dm else EventName.driverUnresponsive2)
+        elif self.sm['driverMonitoringState'].alertLevel == AlertLevel.three:
+          self.events.add(EventName.driverDistracted3 if vision_dm else EventName.driverUnresponsive3)
+        # Warn consistent DM uncertainty
+        if self.sm['driverMonitoringState'].visionPolicyState.uncertainOffroadAlertPercent >= 100 and not self.dm_uncertain_alerted:
+          set_offroad_alert("Offroad_DriverMonitoringUncertain", True)
+          self.dm_uncertain_alerted = True
       self.events_sp.add_from_msg(self.sm['longitudinalPlanSP'].events)
 
     # Add car events, ignore if CAN isn't valid
@@ -484,7 +487,7 @@ class SelfdriveD(CruiseHelper):
       undershooting = abs(desired_lateral_accel) / abs(1e-3 + actual_lateral_accel) > 1.2
       turning = abs(desired_lateral_accel) > 1.0
       # TODO: lac.saturated includes speed and other checks, should be pulled out
-      if undershooting and turning and lac.saturated:
+      if undershooting and turning and lac.saturated and not self.ascent_v8_test_alert_mode:
         self.events.add(EventName.steerSaturated)
 
     # Check for FCW

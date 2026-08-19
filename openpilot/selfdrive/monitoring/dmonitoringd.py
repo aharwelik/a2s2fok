@@ -2,7 +2,8 @@
 import openpilot.cereal.messaging as messaging
 from openpilot.common.params import Params
 from openpilot.common.realtime import config_realtime_process
-from openpilot.selfdrive.monitoring.policy import DriverMonitoring
+from openpilot.selfdrive.monitoring.policy import DRIVER_MONITOR_SETTINGS, DriverMonitoring
+from openpilot.sunnypilot.selfdrive.ascent_v8.test_alert_mode import apply_test_alert_delay, neutralize_test_alert_state
 
 
 def dmonitoringd_thread():
@@ -13,7 +14,10 @@ def dmonitoringd_thread():
   sm = messaging.SubMaster(['driverStateV2', 'extrinsicsCalibration', 'carState', 'selfdriveState', 'modelV2',
                             'carControl'], poll='driverStateV2')
 
-  DM = DriverMonitoring(rhd_saved=params.get_bool("IsRhdDetected"), always_on=params.get_bool("AlwaysOnDM"))
+  settings = DRIVER_MONITOR_SETTINGS()
+  test_alert_mode = apply_test_alert_delay(settings, params)
+  DM = DriverMonitoring(rhd_saved=params.get_bool("IsRhdDetected"), settings=settings,
+                        always_on=params.get_bool("AlwaysOnDM"))
   demo_mode=False
 
   # 20Hz <- dmonitoringmodeld
@@ -28,6 +32,9 @@ def dmonitoringd_thread():
       DM.run_step(sm, demo=True)
     elif valid:
       DM.run_step(sm, demo=demo_mode)
+
+    if test_alert_mode:
+      neutralize_test_alert_state(DM)
 
     # publish
     dat = DM.get_state_packet(valid=valid)

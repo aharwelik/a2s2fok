@@ -1,8 +1,8 @@
 # Ascent V8 next-build backlog
 
 This is the ordered backlog for the next signed build. Nothing in this document is permission to deploy or actuate on
-public roads. EyeSight AEB/lane safety and driver monitoring stay enabled. Vehicle-impact changes remain parked,
-replay, controlled-course, and physical-device gated.
+public roads. EyeSight AEB/lane safety and normal driver monitoring stay enabled outside the explicit exact-Ascent
+controlled-test toggle. Vehicle-impact changes remain parked, replay, controlled-course, and physical-device gated.
 
 ## P0 - evidence must never be blocked by the mutation gate
 
@@ -101,16 +101,23 @@ replay, controlled-course, and physical-device gated.
 
 ## P1 - driver alerts and retained safety systems
 
-- Preserve driver monitoring and its lockout behavior. Driver distraction did not cause the observed traffic-control
-  misses.
+- Preserve normal driver monitoring and its lockout behavior whenever `AscentV8TestAlertDelayEnabled` is false. Driver
+  distraction did not cause the observed traffic-control misses.
+- The default-off development toggle **Ascent V8 quiet test mode (99 min)** is restricted to fingerprint
+  `SUBARU_ASCENT_2023`, cannot be changed while engaged, and requests a runtime restart. It applies three independent
+  layers: 5,940/6,000/6,060-second vision and wheel-touch timers; valid telemetry-only DMS packets with alert, lockout,
+  and no-response forced-deceleration state neutralized; and selective suppression of the six DMS events, the
+  `steerSaturated` prompt, and the on-screen DMoji. The DMS processes and face/pose/blink telemetry stay running.
+- Keep the normal DMS and steering-alert paths unchanged when the toggle is false. Do not globally suppress
+  `VisualAlert.steerRequired`, because unrelated critical alerts use it.
 - Preserve the saved DMS baseline. Route 2 recorded 1,531 `driverMonitoringState` samples with no alert. Route 4
   recorded 3,222 no-alert, 42 level-one, and 26 level-two samples, plus 50 `driverDistracted1` and 22
   `driverDistracted2` events. There was no level-three distraction event in either reviewed route.
 - At the parked read-only check, `AlwaysOnDM=0`, `IsOffroad=1`, `IsEngaged=0`, `ControlsReady=1`, the active
   `DriverTooDistracted` flag was unset, and the retained `DriverLockoutCount` was 1. `AlwaysOnDM=0` disables monitoring
   while disengaged; it is not a supported switch for disabling monitoring while assisted driving is engaged.
-- Preserve the steering-required alert. The observed factory hands-on-wheel message was the steering-saturation
-  warning, not a driver-monitoring alert.
+- Preserve the steering-required alert outside the controlled-test toggle. The observed factory hands-on-wheel message
+  was the steering-saturation warning, not a driver-monitoring alert.
 - Preserve stock EyeSight AEB and lane safety. Turning EyeSight features off does not add traffic-light perception.
 - Make UI wording distinguish DMS, steering saturation, stock EyeSight, lead following, and experimental traffic
   control so the source of an alert is obvious.
@@ -144,5 +151,6 @@ replay, controlled-course, and physical-device gated.
 - Complete controlled-course tests for stopped lead, lead departure, stop sign, red/yellow/green relevance, rolling
   approach, stop/hold/resume, curves, driver overrides, and stale/unknown behavior.
 - Complete the parked power test and a physical comma-four latency/thermal test.
+- Verify both states of the exact-Ascent quiet-test toggle on the physical comma, then leave it false for normal use.
 - Build, audit, sign, publish, install only while the vehicle gate is safe, then verify the exact running commit and
   preserve a tested rollback.
