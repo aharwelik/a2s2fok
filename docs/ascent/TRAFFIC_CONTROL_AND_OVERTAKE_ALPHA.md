@@ -67,6 +67,12 @@ median lead over the combined traffic-control set. Three approaches contained a 
 loss was 4.313 seconds before standstill. The separately confirmed stopped-lead case had planner lead/deceleration
 context, but planner `shouldStop` did not precede standstill and the driver supplied the stop.
 
+The second real driving route adds three video-confirmed ego-facing stop-sign approaches. All three were rolling
+incomplete stops; two reviewed minimum speeds were about 1.90 m/s and 1.84 m/s. Its one full standstill was caused by
+a small red cross-traffic vehicle roughly 20 seconds before the third sign. Video therefore changes the causal label
+from an apparent sign stop to `cross_traffic_stop`. Across the two reviewed real routes, independent video coverage is
+now 5 stop-sign and 3 signal approaches on 2 routes, still far below the 25-route/300+300 qualification gate.
+
 The 28 saved qlogs produced 34 curve candidates: 7 had a blinker present, 15 included driver braking, 26 included a
 driver steering override, 9 included controller saturation, and 5 exceeded the standard lateral-acceleration target
 at peak curvature. These are replay candidates, not video-confirmed turn labels. Thirty-two contained at least one
@@ -124,6 +130,12 @@ controls but still retained two false stop-sign runs, equivalent to 19.960 revie
 At 0.50 it removed every reviewed false run but lost the segment-2 stop sign. Confidence tuning alone therefore cannot
 meet both recall and false-stop gates; the decoys are hard negatives for local fine-tuning and ego relevance.
 
+The same scanner sampled 772 frames across all 13 segments of the second real route. Seven low-threshold runs reduced
+to five true stop-sign runs covering three physical signs and two false runs. The false stop proposal on a vertical
+roadside/tree object had 0.8659 confidence and survived the 0.50 threshold; meanwhile, two early fragments of the
+shaded third sign remained below 0.25 and only its later close fragment reached high confidence. This independently
+confirms that threshold tuning cannot provide both early recall and acceptable false-stop behavior.
+
 The conservative HSV phase probe returned a color on only three of the 19 manually confirmed traffic-light runs: one
 yellow and two green, all visually consistent; the other 16 remained unknown. Those qcamera crops were only 6-23 pixels
 wide. This correctly avoids guessing but cannot provide usable phase coverage. Full-resolution segments 4, 5, 8, 9,
@@ -144,6 +156,8 @@ Reproduce this offline-only report from the saved full-resolution segments with:
 Scan every saved qcamera segment for review candidates with:
 
 `uv run --python 3.12 --with ultralytics python tools/ascent_v8_route_scan.py --video-root <saved-realdata> --model <pinned-model.pt> --output <private-scan.json>`
+
+When the root contains several routes, pass `--route <route-id>`; the scanner now rejects an ambiguous mixed root.
 
 Evaluate a saved OSM node snapshot against route GNSS and confirmed labels with:
 

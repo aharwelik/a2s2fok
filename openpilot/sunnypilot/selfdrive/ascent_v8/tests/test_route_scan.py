@@ -1,4 +1,6 @@
-from tools.ascent_v8_route_scan import confirmed_runs, run_counts_by_confidence
+from pathlib import Path
+
+from tools.ascent_v8_route_scan import confirmed_runs, run_counts_by_confidence, select_route_videos
 
 
 def observation(class_name: str, route_offset_s: float, confidence: float = 0.5) -> dict:
@@ -69,3 +71,18 @@ def test_run_counts_by_confidence_reapplies_temporal_confirmation():
     "0.10": {"confirmed_runs": 2, "stop_sign_runs": 1, "traffic_light_runs": 1},
     "0.50": {"confirmed_runs": 1, "stop_sign_runs": 0, "traffic_light_runs": 1},
   }
+
+
+def test_select_route_videos_requires_choice_for_mixed_root():
+  videos = [Path("route-a--0/qcamera.ts"), Path("route-b--0/qcamera.ts")]
+
+  try:
+    select_route_videos(videos, None)
+  except ValueError as error:
+    assert str(error) == "multiple routes found; provide --route"
+  else:
+    raise AssertionError("mixed route root was accepted")
+
+  route, selected = select_route_videos(videos, "route-b")
+  assert route == "route-b"
+  assert selected == [Path("route-b--0/qcamera.ts")]

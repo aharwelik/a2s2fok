@@ -147,6 +147,9 @@ def test_analyze_files_reports_coverage(tmp_path):
   assert result["coverage"]["recorded_journals"] == 1
   assert result["coverage"]["unreviewed_stop_candidates"] == 1
   assert result["coverage"]["qualified_routes"] == 0
+  assert result["coverage"]["video_confirmed_control_routes"] == 0
+  assert result["coverage"]["video_confirmed_stop_sign_approaches"] == 0
+  assert result["coverage"]["video_confirmed_signal_approaches"] == 0
 
 
 def test_analyze_files_applies_only_confirmed_video_labels(tmp_path):
@@ -178,6 +181,9 @@ def test_analyze_files_applies_only_confirmed_video_labels(tmp_path):
   assert result["candidate_stops"][2]["label"] == "lead_stop"
   assert result["coverage"]["qualified_routes"] == 1
   assert result["coverage"]["video_confirmed_approaches"] == 2
+  assert result["coverage"]["video_confirmed_control_routes"] == 1
+  assert result["coverage"]["video_confirmed_stop_sign_approaches"] == 1
+  assert result["coverage"]["video_confirmed_signal_approaches"] == 1
   assert result["coverage"]["labeled_stop_sign_approaches"] == 1
   assert result["coverage"]["labeled_signal_approaches"] == 0
   assert result["coverage"]["labeled_lead_stop_approaches"] == 1

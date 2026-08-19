@@ -36,6 +36,10 @@ replay, controlled-course, and physical-device gated.
 
 - Preserve the completed manual review of all ten first-route stop candidates: two stop signs, three red signals, one
   stopped-lead queue, one pedestrian/cross-traffic stop, and three parking/turn maneuvers.
+- Preserve the second real-route review: three video-confirmed ego-facing stop-sign approaches all ended as rolling
+  incomplete stops. The only full standstill on that route was caused by a small red cross-traffic vehicle about
+  20 seconds before the third sign, not by the sign itself. Keep rolling control approaches separate from standstill
+  causes when computing coverage.
 - Build a camera-first pipeline: high-resolution traffic-control crops, sign/signal classification, ego relevance,
   temporal tracking, calibrated distance/stop-line estimation, and stale/unknown output on disagreement.
 - Treat the driving model's `shouldStop` as corroborating intent only. It is not a sign classifier or signal-phase
@@ -60,6 +64,8 @@ replay, controlled-course, and physical-device gated.
 - Train and hold out the first-route hard negatives: red street/plaza banners, a blue informational sign, and a yellow
   warning sign. The generic detector at 0.25 retained all five known controls but still proposed two false stop signs in
   10.020 km; at 0.50 it removed reviewed false runs but missed a true stop sign. Do not solve this by threshold tuning.
+- Add the second-route high-confidence false stop proposal on a vertical roadside/tree object to the hard-negative set.
+  It survived both 0.25 and 0.50 confidence while the two early fragments of a shaded true sign stayed below 0.25.
 - After the comma reports offroad, recover full-resolution route-4 segments 4, 5, 8, 9, 11, 15, 16, 17, and 18 for
   phase review. The qcamera probe produced only one yellow and two green outputs across 19 confirmed-light runs; 16
   stayed unknown because the crops were only 6-23 pixels wide.
@@ -97,6 +103,12 @@ replay, controlled-course, and physical-device gated.
 
 - Preserve driver monitoring and its lockout behavior. Driver distraction did not cause the observed traffic-control
   misses.
+- Preserve the saved DMS baseline. Route 2 recorded 1,531 `driverMonitoringState` samples with no alert. Route 4
+  recorded 3,222 no-alert, 42 level-one, and 26 level-two samples, plus 50 `driverDistracted1` and 22
+  `driverDistracted2` events. There was no level-three distraction event in either reviewed route.
+- At the parked read-only check, `AlwaysOnDM=0`, `IsOffroad=1`, `IsEngaged=0`, `ControlsReady=1`, the active
+  `DriverTooDistracted` flag was unset, and the retained `DriverLockoutCount` was 1. `AlwaysOnDM=0` disables monitoring
+  while disengaged; it is not a supported switch for disabling monitoring while assisted driving is engaged.
 - Preserve the steering-required alert. The observed factory hands-on-wheel message was the steering-saturation
   warning, not a driver-monitoring alert.
 - Preserve stock EyeSight AEB and lane safety. Turning EyeSight features off does not add traffic-light perception.

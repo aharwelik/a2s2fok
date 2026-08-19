@@ -33,6 +33,7 @@ CONFIRMED_LABEL_TYPES = (
   "cross_traffic_stop",
   "maneuver_stop",
 )
+TRAFFIC_CONTROL_LABEL_TYPES = ("stop_sign", "traffic_signal")
 
 
 def load_calibration(path: Path) -> tuple[str, list[dict]]:
@@ -146,6 +147,15 @@ def stop_candidates(route: str, samples: list[dict]) -> list[dict]:
 def load_labels(path: Path) -> list[dict]:
   with path.open() as source:
     return [json.loads(line) for line in source if line.strip()]
+
+
+def confirmed_traffic_control_labels(labels: list[dict]) -> list[dict]:
+  return [
+    label for label in labels
+    if label.get("video_review") == "confirmed"
+    and label.get("control_type") in TRAFFIC_CONTROL_LABEL_TYPES
+    and label.get("route")
+  ]
 
 
 def apply_confirmed_labels(events: list[dict], labels: list[dict]) -> int:
@@ -404,9 +414,12 @@ def analyze_files(paths: list[Path], labels_path: Path | None = None, qlog_paths
     routes.append({"route": route, "samples": len(samples), "candidate_stops": len(route_events)})
     events.extend(route_events)
   unmatched_confirmed_labels = 0
+  labels = []
   if labels_path is not None:
-    unmatched_confirmed_labels = apply_confirmed_labels(events, load_labels(labels_path))
+    labels = load_labels(labels_path)
+    unmatched_confirmed_labels = apply_confirmed_labels(events, labels)
   labeled_events = [event for event in events if event["label"] != "unreviewed"]
+  confirmed_controls = confirmed_traffic_control_labels(labels)
   report = {
     "routes": routes,
     "candidate_stops": events,
@@ -417,6 +430,9 @@ def analyze_files(paths: list[Path], labels_path: Path | None = None, qlog_paths
       "unreviewed_stop_candidates": len(events) - len(labeled_events),
       "qualified_routes": len({event["route"] for event in labeled_events}),
       "video_confirmed_approaches": len(labeled_events),
+      "video_confirmed_control_routes": len({label["route"] for label in confirmed_controls}),
+      "video_confirmed_stop_sign_approaches": sum(label["control_type"] == "stop_sign" for label in confirmed_controls),
+      "video_confirmed_signal_approaches": sum(label["control_type"] == "traffic_signal" for label in confirmed_controls),
       "labeled_stop_sign_approaches": sum(event["label"] == "stop_sign" for event in labeled_events),
       "labeled_signal_approaches": sum(event["label"] == "traffic_signal" for event in labeled_events),
       "labeled_lead_stop_approaches": sum(event["label"] == "lead_stop" for event in labeled_events),

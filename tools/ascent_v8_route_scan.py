@@ -100,9 +100,22 @@ def _segment_number(video: Path) -> int:
   return int(video.parent.name.rsplit("--", 1)[1])
 
 
+def select_route_videos(videos: list[Path], route: str | None) -> tuple[str, list[Path]]:
+  routes = {video.parent.name.rsplit("--", 1)[0] for video in videos}
+  if route is None:
+    if len(routes) > 1:
+      raise ValueError("multiple routes found; provide --route")
+    route = next(iter(routes))
+  selected = [video for video in videos if video.parent.name.rsplit("--", 1)[0] == route]
+  if not selected:
+    raise ValueError(f"route {route!r} has no qcamera.ts segments")
+  return route, sorted(selected, key=_segment_number)
+
+
 def main() -> None:
   parser = argparse.ArgumentParser(description="Scan a saved Ascent route for traffic-control review candidates")
   parser.add_argument("--video-root", type=Path, required=True)
+  parser.add_argument("--route", help="route ID to select when --video-root contains more than one route")
   parser.add_argument("--model", type=Path, required=True)
   parser.add_argument("--output", type=Path, required=True)
   parser.add_argument("--confirmation-root", type=Path)
@@ -117,10 +130,13 @@ def main() -> None:
   except ImportError as error:
     raise SystemExit("run with an isolated environment that provides ultralytics") from error
 
-  videos = sorted(args.video_root.glob("*/qcamera.ts"), key=_segment_number)
-  if not videos:
+  all_videos = list(args.video_root.glob("*/qcamera.ts"))
+  if not all_videos:
     parser.error(f"no qcamera.ts segments found under {args.video_root}")
-  route = videos[0].parent.name.rsplit("--", 1)[0]
+  try:
+    route, videos = select_route_videos(all_videos, args.route)
+  except ValueError as error:
+    parser.error(str(error))
   model = YOLO(str(args.model))
   observations = []
   sampled_frames = 0
