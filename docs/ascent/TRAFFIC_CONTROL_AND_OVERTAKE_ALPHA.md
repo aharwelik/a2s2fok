@@ -24,7 +24,10 @@ min)**. It is default-off, exact-fingerprint gated, disabled while engaged, and 
 The mode keeps both monitoring daemons and their face/pose/blink telemetry alive, moves both attention policies to
 5,940/6,000/6,060 seconds, neutralizes alert/lockout/forced-deceleration output as a backstop, hides the DMoji, and
 suppresses only DMS and steering-saturation nuisance events. Turn it off and restart after the controlled test; normal
-behavior is byte-for-byte unchanged when the parameter is false.
+behavior is unchanged when neither the parameter nor the environment switch is active.
+
+For scripted lab launches, setting `ALPHA_NO_DM=1` before manager starts activates the same three-layer mode. The
+environment switch is not a global bypass: it also requires the exact `SUBARU_ASCENT_2023` fingerprint.
 
 ## Automatic first-drive data
 

@@ -1,7 +1,10 @@
+import os
+
 from opendbc.car.structs import car
 
 
 TEST_ALERT_MODE_PARAM = "AscentV8TestAlertDelayEnabled"
+ALPHA_NO_DM_ENV = "ALPHA_NO_DM"
 EXACT_ASCENT_FINGERPRINT = "SUBARU_ASCENT_2023"
 
 ALERT_1_TIMEOUT_S = 99 * 60
@@ -23,7 +26,7 @@ def _persistent_fingerprint(params) -> str | None:
 
 
 def is_test_alert_mode_enabled(params, fingerprint: str | None = None) -> bool:
-  if not params.get_bool(TEST_ALERT_MODE_PARAM):
+  if not params.get_bool(TEST_ALERT_MODE_PARAM) and os.getenv(ALPHA_NO_DM_ENV, "0") != "1":
     return False
   resolved_fingerprint = fingerprint if fingerprint is not None else _persistent_fingerprint(params)
   return resolved_fingerprint == EXACT_ASCENT_FINGERPRINT

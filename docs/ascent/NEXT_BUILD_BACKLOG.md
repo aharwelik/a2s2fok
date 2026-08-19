@@ -108,6 +108,8 @@ controlled-test toggle. Vehicle-impact changes remain parked, replay, controlled
   layers: 5,940/6,000/6,060-second vision and wheel-touch timers; valid telemetry-only DMS packets with alert, lockout,
   and no-response forced-deceleration state neutralized; and selective suppression of the six DMS events, the
   `steerSaturated` prompt, and the on-screen DMoji. The DMS processes and face/pose/blink telemetry stay running.
+- `ALPHA_NO_DM=1` in the manager environment is an alternate lab-only activation path for the same mode. It must be
+  present before manager starts and still fails closed unless the resolved fingerprint is exactly `SUBARU_ASCENT_2023`.
 - Keep the normal DMS and steering-alert paths unchanged when the toggle is false. Do not globally suppress
   `VisualAlert.steerRequired`, because unrelated critical alerts use it.
 - Preserve the saved DMS baseline. Route 2 recorded 1,531 `driverMonitoringState` samples with no alert. Route 4

@@ -6,6 +6,7 @@ from openpilot.sunnypilot.selfdrive.ascent_v8.test_alert_mode import (
   ALERT_1_TIMEOUT_S,
   ALERT_2_TIMEOUT_S,
   ALERT_3_TIMEOUT_S,
+  ALPHA_NO_DM_ENV,
   TEST_ALERT_MODE_PARAM,
   apply_test_alert_delay,
   is_test_alert_mode_enabled,
@@ -54,6 +55,19 @@ def test_explicit_fingerprint_path_is_also_exact_ascent_only():
   params = ParamsStub(enabled=True)
   assert is_test_alert_mode_enabled(params, "SUBARU_ASCENT_2023")
   assert not is_test_alert_mode_enabled(params, "SUBARU_OUTBACK_2023")
+
+
+def test_alpha_no_dm_environment_override_is_exact_ascent_only(monkeypatch):
+  monkeypatch.setenv(ALPHA_NO_DM_ENV, "1")
+  assert is_test_alert_mode_enabled(ParamsStub(enabled=False, fingerprint="SUBARU_ASCENT_2023"))
+  assert not is_test_alert_mode_enabled(ParamsStub(enabled=False, fingerprint="SUBARU_OUTBACK_2023"))
+
+  settings = DRIVER_MONITOR_SETTINGS()
+  assert apply_test_alert_delay(settings, ParamsStub(enabled=False, fingerprint="SUBARU_ASCENT_2023"))
+  assert settings._VISION_POLICY_ALERT_1_TIMEOUT == 99 * 60
+
+  monkeypatch.setenv(ALPHA_NO_DM_ENV, "0")
+  assert not is_test_alert_mode_enabled(ParamsStub(enabled=False, fingerprint="SUBARU_ASCENT_2023"))
 
 
 def test_delay_changes_both_monitoring_policies_to_99_minutes():
